@@ -4,8 +4,21 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Dashboard — FinanceIQ</title>
+  
   <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script src="auth.js"></script>
+
+<script>
+  // Redirect to login page if user is not authenticated
+  const session = AUTH.requireAuth();
+
+  // Make session available globally
+  window.currentUser = session;
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
   <style>
     /* ══ SIDEBAR ══ */
     .sidebar {
