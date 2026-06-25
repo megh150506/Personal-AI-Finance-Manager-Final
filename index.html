@@ -1,66 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Personal Finance Manager — Home</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .home { max-width: 700px; width: 100%; padding: 40px 24px; }
-    .home-logo { font-size: 2.2rem; font-weight: 800; color: var(--green); margin-bottom: 6px; }
-    .home-sub  { color: #64748b; margin-bottom: 40px; }
-    .modules   { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
-    .mod-card  {
-      background: white; border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 22px 20px;
-      text-decoration: none; color: var(--text);
-      transition: border-color 0.2s, transform 0.15s;
-      display: block;
-    }
-    .mod-card:hover { border-color: var(--green); transform: translateY(-2px); }
-    .mod-icon  { font-size: 1.8rem; margin-bottom: 10px; }
-    .mod-name  { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-    .mod-desc  { font-size: 0.8rem; color: #64748b; line-height: 1.5; }
-    .footer    { margin-top: 36px; font-size: 0.8rem; color: #64748b; text-align: center; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinanceIQ</title>
 </head>
 <body>
-  <div class="home">
-    <div class="home-logo">💰 FinanceIQ</div>
-    <p class="home-sub">Your personal AI-powered finance manager. Track income, expenses, budgets and get smart insights.</p>
 
-    <div class="modules">
-      <a class="mod-card" href="dashboard.html">
-        <div class="mod-icon">🏠</div>
-        <div class="mod-name">Dashboard</div>
-        <div class="mod-desc">Overview of your financial health — balance, income, expenses, and recent activity.</div>
-      </a>
-      <a class="mod-card" href="transactions.html">
-        <div class="mod-icon">📋</div>
-        <div class="mod-name">Transactions</div>
-        <div class="mod-desc">Add, view, filter, and delete all income and expense transactions.</div>
-      </a>
-      <a class="mod-card" href="budget.html">
-        <div class="mod-icon">🎯</div>
-        <div class="mod-name">Budget Planner</div>
-        <div class="mod-desc">Set monthly spending limits per category and track how you're doing.</div>
-      </a>
-      <a class="mod-card" href="analytics.html">
-        <div class="mod-icon">📊</div>
-        <div class="mod-name">Analytics</div>
-        <div class="mod-desc">Visual charts — income vs expense bar chart, spending pie, and savings trend line.</div>
-      </a>
-      <a class="mod-card" href="ai-advisor.html">
-        <div class="mod-icon">🤖</div>
-        <div class="mod-name">AI Advisor</div>
-        <div class="mod-desc">Chat with AI for personalized financial advice based on your real data.</div>
-      </a>
-    </div>
+<script src="auth.js"></script>
 
-    <p class="footer">All data stored locally in your browser. Nothing is sent to any server except AI queries.</p>
-  </div>
-  <script src="data.js"></script>
-  <script>seedDemoData();</script>
+<script>
+  // Check if user is already logged in
+  const session = AUTH.getSession();
+
+  if (session) {
+    // Logged in → Dashboard
+    window.location.replace("dashboard.html");
+  } else {
+    // Not logged in → Login page
+    window.location.replace("login.html");
+  }
+</script>
+
 </body>
 </html>
