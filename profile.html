@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Profile & Users — FinanceIQ</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.sidebar{width:250px;background:linear-gradient(180deg,#0369a1 0%,#0ea5e9 65%,#38bdf8 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;box-shadow:4px 0 24px rgba(3,105,161,0.2);z-index:50;overflow-y:auto;}
+.sb-logo{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.18);}
+.sb-logo-title{font-size:1.2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:9px;}
+.sb-logo-sub{font-size:0.68rem;color:rgba(255,255,255,0.55);margin-top:2px;}
+.sb-user{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.12);}
+.sb-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,0.35);}
+.sb-uname{font-size:0.86rem;font-weight:700;color:#fff;}
+.sb-urole{font-size:0.66rem;color:rgba(255,255,255,0.6);}
+.sb-online{width:8px;height:8px;background:#4ade80;border-radius:50%;margin-left:auto;flex-shrink:0;}
+.sb-section{font-size:0.6rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.12em;padding:13px 18px 5px;}
+.nav-link{display:flex;align-items:center;gap:10px;padding:10px 15px;border-radius:10px;margin:2px 10px;text-decoration:none;color:rgba(255,255,255,0.82);font-weight:600;font-size:0.85rem;transition:all 0.18s;}
+.nav-link:hover{background:rgba(255,255,255,0.15);color:#fff;}
+.nav-link.active{background:#fff;color:#0369a1;box-shadow:0 3px 12px rgba(0,0,0,0.1);}
+.nav-link .icon{width:20px;text-align:center;font-size:0.95rem;}
+.nav-badge{margin-left:auto;padding:2px 7px;border-radius:9px;font-size:0.6rem;font-weight:700;background:rgba(255,255,255,0.2);color:#fff;}
+.nav-link.active .nav-badge{background:#0ea5e9;color:#fff;}
+.sb-actions{padding:0 10px 10px;}
+.sb-btn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:9px;border:none;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9);font-size:0.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:5px;text-decoration:none;transition:all 0.18s;}
+.sb-btn:hover{background:rgba(255,255,255,0.22);color:#fff;}
+.sb-btn.logout{background:rgba(220,38,38,0.2);color:#fca5a5;}
+.sb-btn.logout:hover{background:rgba(220,38,38,0.35);}
+.main{margin-left:250px;padding:24px 28px;}
+/* Profile card */
+.profile-hero{background:linear-gradient(135deg,#0369a1,#0ea5e9);border-radius:20px;padding:28px 30px;margin-bottom:22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;box-shadow:0 8px 28px rgba(14,165,233,0.28);}
+.profile-av-big{width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:#fff;border:3px solid rgba(255,255,255,0.4);flex-shrink:0;}
+.profile-info h1{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:3px;}
+.profile-info p{font-size:0.84rem;color:rgba(255,255,255,0.8);}
+.profile-badges{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.pbadge{padding:4px 12px;border-radius:18px;font-size:0.72rem;font-weight:700;background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.25);}
+/* Cards */
+.card{background:#fff;border-radius:18px;padding:22px 24px;margin-bottom:18px;box-shadow:0 3px 14px rgba(14,165,233,0.08);}
+.ctitle{font-size:0.79rem;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;display:flex;align-items:center;gap:7px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+/* Stat */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:#f0f9ff;border-radius:13px;padding:16px;text-align:center;}
+.stat-val{font-size:1.3rem;font-weight:800;color:#0369a1;}
+.stat-lab{font-size:0.7rem;color:#64748b;margin-top:3px;}
+/* User table */
+.user-table{width:100%;border-collapse:collapse;font-size:0.84rem;}
+.user-table th{text-align:left;padding:9px 12px;color:#64748b;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e0f2fe;}
+.user-table td{padding:12px;border-bottom:1px solid #f0f9ff;vertical-align:middle;}
+.user-table tr:last-child td{border-bottom:none;}
+.user-table tr:hover td{background:#f8fdff;}
+.u-avatar{width:34px;height:34px;border-radius:50%;background:#0ea5e9;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:800;}
+.u-name{font-weight:700;color:#1e293b;}
+.u-email{font-size:0.75rem;color:#94a3b8;margin-top:1px;}
+.u-plan{display:inline-block;padding:2px 9px;border-radius:18px;font-size:0.68rem;font-weight:700;background:#dcfce7;color:#16a34a;}
+.u-plan.pro{background:#fef3c7;color:#92400e;}
+.u-time{font-size:0.75rem;color:#94a3b8;}
+/* Change pw form */
+.form-group{margin-bottom:13px;}
+.form-group label{display:block;font-size:0.75rem;font-weight:700;color:#374151;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;}
+.form-group input{width:100%;padding:10px 13px;border:1.5px solid #e0f2fe;border-radius:9px;font-size:0.88rem;font-family:inherit;color:#1e293b;outline:none;transition:border-color 0.18s;}
+.form-group input:focus{border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,0.1);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:9px;border:none;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+.btn.primary{background:linear-gradient(135deg,#0369a1,#0ea5e9);color:#fff;}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(14,165,233,0.3);}
+.btn.danger{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+.btn.danger:hover{background:#fecaca;}
+.msg{padding:10px 14px;border-radius:9px;font-size:0.82rem;font-weight:600;margin-bottom:12px;display:none;}
+.msg.ok{background:#dcfce7;color:#14532d;border:1px solid #86efac;display:block;}
+.msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;display:block;}
+@media(max-width:768px){.sidebar{width:100%;position:relative}.main{margin-left:0}.two-col,.stat-grid{grid-template-columns:1fr}.app-shell{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="sb-logo"><div class="sb-logo-title">💰 FinanceIQ</div><div class="sb-logo-sub">Personal Finance Manager</div></div>
+  <div class="sb-user">
+    <div class="sb-avatar" id="sb-av">M</div>
+    <div><div class="sb-uname" id="sb-name">—</div><div class="sb-urole" id="sb-email">—</div></div>
+    <div class="sb-online"></div>
+  </div>
+  <nav>
+    <div class="sb-section">Main</div>
+    <a class="nav-link" href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+    <a class="nav-link" href="transactions.html"><span class="icon">📋</span> Transactions</a>
+    <a class="nav-link" href="budget.html"><span class="icon">🎯</span> Budget Planner</a>
+    <div class="sb-section">Insights</div>
+    <a class="nav-link" href="analytics.html"><span class="icon">📊</span> Analytics</a>
+    <a class="nav-link" href="ai-advisor.html"><span class="icon">🤖</span> AI Coach <span class="nav-badge">AI</span></a>
+    <div class="sb-section">Account</div>
+    <a class="nav-link active" href="profile.html"><span class="icon">👤</span> Profile & Users</a>
+  </nav>
+  <div class="sb-section" style="padding-top:4px">Actions</div>
+  <div class="sb-actions">
+    <a class="sb-btn" href="dashboard.html">🏠 Go to Dashboard</a>
+    <button class="sb-btn logout" onclick="AUTH.logout()">🚪 Sign Out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- Profile Hero -->
+  <div class="profile-hero" id="profile-hero">
+    <div class="profile-av-big" id="pav">M</div>
+    <div class="profile-info">
+      <h1 id="pname">Loading…</h1>
+      <p id="pemail">—</p>
+      <p id="pjoined" style="font-size:0.75rem;opacity:0.7;margin-top:2px"></p>
+      <div class="profile-badges">
+        <span class="pbadge" id="pplan">Free Plan</span>
+        <span class="pbadge" id="plogin">Last login: —</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid" id="stats-grid"></div>
+
+  <div class="two-col">
+    <!-- Change Password -->
+    <div class="card">
+      <div class="ctitle">🔐 Change Password</div>
+      <div id="pw-msg" class="msg"></div>
+      <div class="form-group"><label>Current password</label><input type="password" id="pw-current" placeholder="Current password"/></div>
+      <div class="form-group"><label>New password</label><input type="password" id="pw-new" placeholder="Min. 6 characters"/></div>
+      <div class="form-group"><label>Confirm new</label><input type="password" id="pw-confirm" placeholder="Repeat new password"/></div>
+      <button class="btn primary" onclick="changePassword()">Update Password</button>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card">
+      <div class="ctitle">⚠️ Account Actions</div>
+      <p style="font-size:0.83rem;color:#64748b;margin-bottom:16px;line-height:1.6">Manage your account data. These actions affect only your account.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn primary" onclick="exportData()">📥 Export My Data (JSON)</button>
+        <button class="btn danger" onclick="clearData()">🗑️ Clear All My Transactions</button>
+        <button class="btn danger" onclick="deleteAccount()">❌ Delete My Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Registered Users -->
+  <div class="card">
+    <div class="ctitle">👥 All Registered Users <span style="color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.73rem" id="ucount"></span></div>
+    <div style="overflow-x:auto">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Plan</th>
+            <th>Joined</th>
+            <th>Last Login</th>
+            <th>Transactions</th>
+          </tr>
+        </thead>
+        <tbody id="user-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="auth.js"></script>
+<script>
+const session = AUTH.requireAuth();
+if (session) {
+  // Sidebar
+  document.getElementById('sb-av').textContent   = session.avatar;
+  document.getElementById('sb-name').textContent  = session.name;
+  document.getElementById('sb-email').textContent = session.email;
+
+  // Profile hero
+  document.getElementById('pav').textContent   = session.avatar;
+  document.getElementById('pname').textContent  = session.name;
+  document.getElementById('pemail').textContent = session.email;
+
+  const users = AUTH.getUsers();
+  const me    = users.find(u=>u.id===session.userId);
+  if (me) {
+    document.getElementById('pjoined').textContent = 'Member since ' + new Date(me.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('pplan').textContent   = me.plan==='pro'?'⭐ Pro Plan':'Free Plan';
+    document.getElementById('plogin').textContent  = 'Last login: ' + (me.lastLogin?new Date(me.lastLogin).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'just now');
+  }
+
+  // Stats
+  const myTxs = AUTH.getUserData();
+  const income  = myTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense = myTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const fmt = n=>'₹'+Math.abs(n).toLocaleString('en-IN',{maximumFractionDigits:0});
+  document.getElementById('stats-grid').innerHTML=[
+    {val:myTxs.length+'', lab:'Total Transactions'},
+    {val:fmt(income),     lab:'Total Income'},
+    {val:fmt(expense),    lab:'Total Expenses'},
+    {val:fmt(income-expense), lab:'Net Savings'},
+    {val:Object.keys(AUTH.getUserBudgets()).length+'', lab:'Budgets Set'},
+    {val:users.length+'', lab:'Users Registered'},
+  ].map(s=>`<div class="stat"><div class="stat-val">${s.val}</div><div class="stat-lab">${s.lab}</div></div>`).join('');
+
+  // Users table
+  document.getElementById('ucount').textContent = `(${users.length} total)`;
+  document.getElementById('user-table-body').innerHTML = users.map(u=>{
+    const utxs = (()=>{try{return JSON.parse(localStorage.getItem(`pfm_tx_${u.id}`)||'[]')}catch(e){return[]}})();
+    const isMe = u.id===session.userId;
+    return`<tr${isMe?' style="background:#f0fdf4"':''}>
+      <td><div class="u-avatar">${u.avatar}</div></td>
+      <td><div class="u-name">${u.name}${isMe?' <span style="font-size:0.65rem;background:#dcfce7;color:#16a34a;padding:1px 7px;border-radius:9px;font-weight:700">You</span>':''}</div></td>
+      <td><div class="u-email">${u.email}</div></td>
+      <td><span class="u-plan ${u.plan}">${u.plan==='pro'?'⭐ Pro':'Free'}</span></td>
+      <td class="u-time">${new Date(u.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</td>
+      <td class="u-time">${u.lastLogin?new Date(u.lastLogin).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'Never'}</td>
+      <td style="font-weight:700;color:#0369a1">${utxs.length}</td>
+    </tr>`;
+  }).join('');
+}
+
+function changePassword() {
+  const cur=document.getElementById('pw-current').value;
+  const nw =document.getElementById('pw-new').value;
+  const con=document.getElementById('pw-confirm').value;
+  const msg=document.getElementById('pw-msg');
+  msg.className='msg';
+  if (!cur||!nw||!con){msg.textContent='Fill in all fields.';msg.className='msg err';return;}
+  if (nw!==con){msg.textContent='New passwords do not match.';msg.className='msg err';return;}
+  if (nw.length<6){msg.textContent='New password must be at least 6 characters.';msg.className='msg err';return;}
+
+  const users=AUTH.getUsers();
+  const idx=users.findIndex(u=>u.id===session.userId);
+  if(idx===-1) return;
+  if(users[idx].password!==AUTH.hashPassword(cur)){msg.textContent='Current password is incorrect.';msg.className='msg err';return;}
+  users[idx].password=AUTH.hashPassword(nw);
+  AUTH.saveUsers(users);
+  msg.textContent='✅ Password updated successfully!';msg.className='msg ok';
+  document.getElementById('pw-current').value='';
+  document.getElementById('pw-new').value='';
+  document.getElementById('pw-confirm').value='';
+}
+
+function exportData() {
+  const data={user:{name:session.name,email:session.email},transactions:AUTH.getUserData(),budgets:AUTH.getUserBudgets(),exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`financeiq_${session.name.replace(/\s+/g,'_')}_data.json`;a.click();
+}
+
+function clearData() {
+  if(!confirm('Delete ALL your transactions? This cannot be undone.')) return;
+  AUTH.saveUserData([]);
+  alert('All transactions cleared.');
+  location.reload();
+}
+
+function deleteAccount() {
+  if(!confirm(`Delete your account "${session.name}"? All your data will be permanently removed.`)) return;
+  if(!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  const users=AUTH.getUsers().filter(u=>u.id!==session.userId);
+  AUTH.saveUsers(users);
+  localStorage.removeItem(AUTH.txKey());
+  localStorage.removeItem(AUTH.budgetKey());
+  AUTH.logout();
+}
+</script>
+</body>
+</html>

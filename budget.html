@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Planner — Finance Manager</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    /* ── Page-specific styles ── */
+    .budget-inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .budget-input-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px;
+    }
+    .budget-input-card label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 600;
+    }
+    .budget-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .budget-row:last-child { border-bottom: none; }
+    .budget-cat  { width: 120px; font-size: 0.88rem; font-weight: 600; flex-shrink: 0; }
+    .budget-nums { width: 180px; font-size: 0.8rem; color: var(--muted); text-align: right; flex-shrink: 0; }
+    .budget-pct  { width: 50px; font-size: 0.8rem; font-weight: 700; text-align: right; flex-shrink: 0; }
+
+    .tip-box {
+      background: var(--blue-bg); border: 1px solid var(--blue);
+      border-radius: var(--radius-sm); padding: 12px 16px;
+      font-size: 0.83rem; color: var(--blue); margin-top: 12px;
+      line-height: 1.7;
+    }
+    .rule-badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    }
+    .total-row {
+      display: flex; justify-content: space-between;
+      padding: 12px 0; font-size: 0.9rem;
+      border-top: 1px solid var(--border); margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">💰</span> FinanceIQ</div>
+    <nav class="sidebar-nav">
+      <a class="nav-link"        href="dashboard.html">    <span class="icon">🏠</span> Dashboard</a>
+      <a class="nav-link"        href="transactions.html"> <span class="icon">📋</span> Transactions</a>
+      <a class="nav-link active" href="budget.html">       <span class="icon">🎯</span> Budget</a>
+      <a class="nav-link"        href="analytics.html">    <span class="icon">📊</span> Analytics</a>
+      <a class="nav-link"        href="ai-advisor.html">   <span class="icon">🤖</span> AI Advisor</a>
+    </nav>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <h1 class="page-title">Budget Planner</h1>
+    <p class="page-sub">Set monthly spending limits and track how you're doing in real time.</p>
+
+    <div id="save-alert"></div>
+
+    <!-- Set budgets -->
+    <div class="card">
+      <div class="card-title">Set monthly budgets</div>
+      <div class="budget-inputs-grid" id="budget-inputs"></div>
+      <div class="total-row" id="budget-total"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn primary" onclick="saveBudgets()">💾 Save budgets</button>
+        <button class="btn" onclick="applyRule('50-30-20')">🎲 Apply 50/30/20 rule</button>
+        <button class="btn" onclick="resetBudgets()">🔄 Reset to zero</button>
+      </div>
+      <div class="tip-box">
+        <strong>💡 50/30/20 Rule:</strong> 50% of income on needs (Housing, Food, Utilities, Health, Transport),
+        30% on wants (Entertainment, Shopping), 20% on savings.
+        Click <em>"Apply 50/30/20 rule"</em> to auto-fill budgets based on your monthly income.
+      </div>
+    </div>
+
+    <!-- Budget vs actual -->
+    <div class="card">
+      <div class="card-title">Budget vs actual — <span id="current-month"></span></div>
+      <div id="budget-bars"></div>
+    </div>
+
+    <!-- Budget overview chart -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Budget allocation</div>
+        <div style="position:relative;height:200px"><canvas id="budget-pie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending vs budget</div>
+        <div style="position:relative;height:200px"><canvas id="budget-bar"></canvas></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+seedDemoData();
+
+document.getElementById('current-month').textContent = getMonth();
+
+// ── Render budget input fields ────────────────────────────────
+function renderInputs() {
+  const budgets = getBudgets();
+  document.getElementById('budget-inputs').innerHTML = EXPENSE_CATS.map(c => `
+    <div class="budget-input-card">
+      <label>
+        <span style="font-size:1rem">${catEmoji(c)}</span> ${c}
+      </label>
+      <input type="number" id="bi-${c}" placeholder="₹ 0" min="0"
+        value="${budgets[c] || ''}" oninput="updateTotal()" />
+    </div>`).join('');
+  updateTotal();
+}
+
+function catEmoji(cat) {
+  const m = { Food:'🍔', Transport:'🚗', Housing:'🏠', Entertainment:'🎬',
+    Health:'💊', Shopping:'🛍️', Utilities:'💡', Other:'📦' };
+  return m[cat] || '💰';
+}
+
+function updateTotal() {
+  const total = EXPENSE_CATS.reduce((s, c) => {
+    const v = parseFloat(document.getElementById('bi-' + c)?.value || 0);
+    return s + (v || 0);
+  }, 0);
+  document.getElementById('budget-total').innerHTML = `
+    <span style="color:var(--muted)">Total monthly budget</span>
+    <strong style="color:var(--amber)">${fmt(total)}</strong>`;
+}
+
+// ── Save ──────────────────────────────────────────────────────
+function saveBudgets() {
+  const b = {};
+  EXPENSE_CATS.forEach(c => {
+    const v = parseFloat(document.getElementById('bi-' + c).value);
+    if (v > 0) b[c] = v;
+  });
+  saveBudgetData(b);
+  document.getElementById('save-alert').innerHTML =
+    '<div class="alert success">✅ Budgets saved successfully!</div>';
+  setTimeout(() => document.getElementById('save-alert').innerHTML = '', 3000);
+  renderBudgetBars();
+  renderCharts();
+}
+
+// ── Apply 50-30-20 ────────────────────────────────────────────
+function applyRule() {
+  const month  = getMonth();
+  const income = getData()
+    .filter(t => t.type === 'income' && t.date.startsWith(month))
+    .reduce((s, t) => s + t.amount, 0);
+
+  if (!income) {
+    alert('No income recorded this month. Add income transactions first.');
+    return;
+  }
+
+  const needs = income * 0.5;
+  const wants = income * 0.3;
+  const vals  = {
+    Housing:       Math.round(needs * 0.40),
+    Food:          Math.round(needs * 0.25),
+    Utilities:     Math.round(needs * 0.15),
+    Health:        Math.round(needs * 0.10),
+    Transport:     Math.round(needs * 0.10),
+    Entertainment: Math.round(wants * 0.40),
+    Shopping:      Math.round(wants * 0.45),
+    Other:         Math.round(wants * 0.15),
+  };
+  EXPENSE_CATS.forEach(c => {
+    const el = document.getElementById('bi-' + c);
+    if (el && vals[c]) el.value = vals[c];
+  });
+  updateTotal();
+}
+
+// ── Reset ─────────────────────────────────────────────────────
+function resetBudgets() {
+  if (!confirm('Reset all budgets to zero?')) return;
+  saveBudgetData({});
+  renderInputs();
+  renderBudgetBars();
+  renderCharts();
+}
+
+// ── Budget progress bars ──────────────────────────────────────
+function renderBudgetBars() {
+  const budgets = getBudgets();
+  const month   = getMonth();
+  const txs     = getData().filter(t => t.type === 'expense' && t.date.startsWith(month));
+  const spent   = {};
+  txs.forEach(t => { spent[t.cat] = (spent[t.cat] || 0) + t.amount; });
+
+  const el = document.getElementById('budget-bars');
+  if (!Object.keys(budgets).length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🎯</div><p>Set your budgets above and click Save.</p></div>';
+    return;
+  }
+
+  el.innerHTML = Object.entries(budgets).map(([cat, budget]) => {
+    const s   = spent[cat] || 0;
+    const pct = budget > 0 ? Math.min((s / budget) * 100, 100) : 0;
+    const cls = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : 'ok';
+    const color = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : 'var(--green)';
+    return `
+      <div class="budget-row">
+        <div class="budget-cat">${catEmoji(cat)} ${cat}</div>
+        <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct.toFixed(1)}%"></div></div>
+        <div class="budget-pct" style="color:${color}">${pct.toFixed(0)}%</div>
+        <div class="budget-nums">${fmt(s)} / ${fmt(budget)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Charts ────────────────────────────────────────────────────
+let charts = {};
+function renderCharts() {
+  const budgets = getBudgets();
+  const month   = getMonth();
+  const txs     = getData().filter(t => t.type === 'expense' && t.date.startsWith(month));
+  const spent   = {};
+  txs.forEach(t => { spent[t.cat] = (spent[t.cat] || 0) + t.amount; });
+
+  const labels = Object.keys(budgets);
+  const bVals  = labels.map(l => budgets[l]);
+  const sVals  = labels.map(l => spent[l] || 0);
+  const colors = labels.map(l => CAT_COLORS[l] || '#888');
+
+  if (charts.pie) charts.pie.destroy();
+  if (charts.bar) charts.bar.destroy();
+
+  charts.pie = new Chart(document.getElementById('budget-pie'), {
+    type: 'pie',
+    data: { labels, datasets: [{ data: bVals, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12 } } },
+      maintainAspectRatio: false
+    }
+  });
+
+  charts.bar = new Chart(document.getElementById('budget-bar'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Budget', data: bVals, backgroundColor: 'rgba(55,138,221,0.3)', borderColor: '#378add', borderWidth: 1, borderRadius: 4 },
+        { label: 'Spent',  data: sVals, backgroundColor: sVals.map((s,i) => s > bVals[i] ? 'rgba(226,75,74,0.7)' : 'rgba(29,158,117,0.7)'), borderWidth: 0, borderRadius: 4 }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#64748b', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { ticks: { color: '#64748b', font: { size: 11 }, callback: v => '₹' + v.toLocaleString() } }
+      },
+      maintainAspectRatio: false
+    }
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+renderInputs();
+renderBudgetBars();
+renderCharts();
+</script>
+</body>
+</html>

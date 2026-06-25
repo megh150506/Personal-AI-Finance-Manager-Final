@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dashboard — FinanceIQ</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    /* ══ SIDEBAR ══ */
+    .sidebar {
+      width:250px;
+      background:linear-gradient(180deg,#0369a1 0%,#0ea5e9 65%,#38bdf8 100%);
+      display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;bottom:0;
+      box-shadow:4px 0 24px rgba(3,105,161,0.2);
+      z-index:50;overflow-y:auto;
+    }
+    .sb-logo { padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.18); }
+    .sb-logo-title { font-size:1.25rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:10px; }
+    .sb-logo-sub   { font-size:0.7rem;color:rgba(255,255,255,0.6);margin-top:2px;letter-spacing:0.04em; }
+
+    .sb-user { display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.12); }
+    .sb-avatar { width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,0.4); }
+    .sb-uname { font-size:0.88rem;font-weight:700;color:#fff; }
+    .sb-urole { font-size:0.68rem;color:rgba(255,255,255,0.6); }
+    .sb-online { width:8px;height:8px;background:#4ade80;border-radius:50%;margin-left:auto;flex-shrink:0;box-shadow:0 0 0 2px rgba(74,222,128,0.3); }
+
+    .sb-section { font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.12em;padding:14px 18px 6px; }
+
+    .nav-link {
+      display:flex;align-items:center;gap:11px;
+      padding:11px 16px;border-radius:10px;margin:2px 10px;
+      text-decoration:none;color:rgba(255,255,255,0.82);font-weight:600;font-size:0.86rem;
+      transition:all 0.18s;
+    }
+    .nav-link:hover { background:rgba(255,255,255,0.15);color:#fff;transform:translateX(3px); }
+    .nav-link.active { background:#fff;color:#0369a1;box-shadow:0 3px 12px rgba(0,0,0,0.12); }
+    .nav-link .icon  { width:20px;text-align:center;font-size:1rem; }
+    .nav-badge { margin-left:auto;padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;background:rgba(255,255,255,0.2);color:#fff; }
+    .nav-link.active .nav-badge { background:#0ea5e9;color:#fff; }
+
+    /* Sidebar summary cards */
+    .sb-summary { padding:14px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+    .sb-card { background:rgba(255,255,255,0.14);border-radius:10px;padding:10px 12px;text-align:center; }
+    .sb-card-val { font-size:0.92rem;font-weight:800;color:#fff; }
+    .sb-card-lab { font-size:0.62rem;color:rgba(255,255,255,0.6);margin-top:2px; }
+
+    /* Sidebar quick actions */
+    .sb-actions { padding:0 12px 12px; }
+    .sb-action-btn {
+      display:flex;align-items:center;gap:9px;width:100%;
+      padding:9px 13px;border-radius:10px;border:none;
+      background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9);
+      font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;
+      margin-bottom:6px;text-decoration:none;transition:all 0.18s;
+    }
+    .sb-action-btn:hover { background:rgba(255,255,255,0.22);color:#fff; }
+
+    /* Sidebar tip */
+    .sb-tip { margin:0 12px 16px;background:rgba(255,255,255,0.1);border-radius:10px;padding:11px 13px;font-size:0.72rem;color:rgba(255,255,255,0.8);line-height:1.6; }
+    .sb-tip strong { color:#fff; }
+
+    /* ══ MAIN ══ */
+    .main { margin-left:250px;padding:26px 30px;max-width:none;min-height:100vh; }
+
+    /* ══ HERO ══ */
+    .hero {
+      background:linear-gradient(135deg,#0369a1 0%,#0ea5e9 60%,#38bdf8 100%);
+      border-radius:20px;padding:28px 32px;margin-bottom:22px;
+      position:relative;overflow:hidden;
+      box-shadow:0 8px 28px rgba(14,165,233,0.28);
+    }
+    .hero::before { content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%); }
+    .hero-inner { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;position:relative;z-index:1; }
+    .hero-greeting { font-size:1.8rem;font-weight:800;color:#fff;margin-bottom:4px;line-height:1.2; }
+    .hero-sub      { font-size:0.88rem;color:rgba(255,255,255,0.82);margin-bottom:18px; }
+    .hero-pills    { display:flex;gap:9px;flex-wrap:wrap; }
+    .hero-pill     { padding:8px 18px;border-radius:22px;font-size:0.8rem;font-weight:700;text-decoration:none;transition:all 0.18s;border:1.5px solid transparent; }
+    .hero-pill.w   { background:#fff;color:#0369a1; }
+    .hero-pill.w:hover { background:#e0f2fe;transform:translateY(-2px); }
+    .hero-pill.g   { background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3); }
+    .hero-pill.g:hover { background:rgba(255,255,255,0.25);transform:translateY(-2px); }
+    .hero-stats    { display:flex;gap:12px;flex-wrap:wrap; }
+    .hero-stat     { background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);border-radius:14px;padding:13px 18px;text-align:center;min-width:105px; }
+    .hero-stat-val { font-size:1.2rem;font-weight:800;color:#fff; }
+    .hero-stat-lab { font-size:0.7rem;color:rgba(255,255,255,0.75);margin-top:2px; }
+
+    /* ══ METRICS ══ */
+    .metrics-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:22px; }
+    .metric {
+      background:#fff;border-radius:16px;padding:18px 20px;
+      box-shadow:0 3px 14px rgba(14,165,233,0.09);
+      border-left:4px solid transparent;position:relative;overflow:hidden;
+      transition:transform 0.2s,box-shadow 0.2s;
+    }
+    .metric:hover { transform:translateY(-4px);box-shadow:0 8px 22px rgba(14,165,233,0.15); }
+    .metric.mg { border-left-color:#16a34a; } .metric.mr { border-left-color:#dc2626; }
+    .metric.mb { border-left-color:#0ea5e9; } .metric.ma { border-left-color:#f59e0b; }
+    .metric-icon  { font-size:1.3rem;margin-bottom:8px; }
+    .metric-label { font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em; }
+    .metric-value { font-size:1.6rem;font-weight:800;margin-top:5px; }
+    .metric-value.green{color:#16a34a;}.metric-value.red{color:#dc2626;}.metric-value.blue{color:#0ea5e9;}.metric-value.amber{color:#f59e0b;}
+    .metric-sub   { font-size:0.72rem;color:#94a3b8;margin-top:3px; }
+    .metric-badge { position:absolute;top:14px;right:14px;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px; }
+    .metric-badge.up   { background:#dcfce7;color:#16a34a; }
+    .metric-badge.down { background:#fee2e2;color:#dc2626; }
+
+    /* ══ SECTION HEADING ══ */
+    .sec-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px; }
+    .sec-title { font-size:0.82rem;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:7px; }
+    .sec-link  { font-size:0.78rem;color:#0ea5e9;text-decoration:none;font-weight:700; }
+    .sec-link:hover { text-decoration:underline; }
+
+    /* ══ CARDS ══ */
+    .card { background:#fff;border-radius:18px;padding:22px 24px;margin-bottom:20px;box-shadow:0 3px 14px rgba(14,165,233,0.08); }
+
+    /* ══ ALERTS ══ */
+    .alert-row { border-radius:12px;padding:12px 15px;font-size:0.83rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:11px;border:1px solid;line-height:1.55; }
+    .alert-row:last-child { margin-bottom:0; }
+    .a-icon { font-size:1rem;flex-shrink:0;margin-top:1px; }
+    .alert-row.warn   { background:rgba(245,158,11,0.07); border-color:#f59e0b; color:#92400e; }
+    .alert-row.danger { background:rgba(220,38,38,0.06);  border-color:#dc2626; color:#991b1b; }
+    .alert-row.ok     { background:rgba(22,163,74,0.07);  border-color:#16a34a; color:#14532d; }
+    .alert-row.tip    { background:rgba(14,165,233,0.07); border-color:#0ea5e9; color:#075985; }
+    .alert-row strong { display:block;margin-bottom:1px;font-size:0.85rem; }
+
+    /* ══ HEALTH SCORE ══ */
+    .health-wrap { display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap; }
+    .score-ring  { position:relative;width:100px;height:100px;flex-shrink:0; }
+    .score-ring svg { transform:rotate(-90deg); }
+    .score-center { position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center; }
+    .score-num  { font-size:1.7rem;font-weight:800;line-height:1; }
+    .score-sub  { font-size:0.58rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em; }
+    .score-pillars { flex:1;min-width:180px; }
+    .sp-row { display:flex;align-items:center;gap:9px;font-size:0.78rem;margin-bottom:8px; }
+    .sp-label { width:95px;color:#64748b;font-weight:500; }
+    .sp-track { flex:1;height:6px;background:#e0f2fe;border-radius:3px;overflow:hidden; }
+    .sp-fill  { height:100%;border-radius:3px;transition:width 0.7s; }
+    .sp-val   { width:26px;text-align:right;font-weight:700;font-size:0.75rem; }
+    .score-tip { margin-top:12px;padding-top:12px;border-top:1px solid #e0f2fe;font-size:0.8rem;color:#64748b; }
+    .mo-chips { display:flex;gap:7px;flex-wrap:wrap;margin-top:10px; }
+    .mo-chip  { padding:5px 11px;border-radius:18px;font-size:0.72rem;font-weight:700;background:#f0f9ff;border:1.5px solid #bae6fd; }
+    .mo-chip .mc-s { display:block;font-size:0.6rem;color:#94a3b8;margin-top:1px; }
+
+    /* ══ TRANSACTIONS ══ */
+    .tx-list { max-height:360px;overflow-y:auto; }
+    .tx-row  { display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #f0f9ff; }
+    .tx-row:last-child { border-bottom:none; }
+    .tx-icon { width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.95rem;font-weight:700; }
+    .tx-icon.inc { background:#dcfce7;color:#16a34a; }
+    .tx-icon.exp { background:#fee2e2;color:#dc2626; }
+    .tx-meta { flex:1; }
+    .tx-desc { font-weight:700;font-size:0.86rem;color:#1e293b; }
+    .tx-date { font-size:0.72rem;color:#94a3b8;margin-top:1px; }
+    .tx-cat  { font-size:0.68rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:18px;padding:2px 9px;color:#0369a1;font-weight:600;white-space:nowrap; }
+    .tx-amt  { font-weight:800;font-size:0.92rem;white-space:nowrap; }
+    .tx-amt.pos{color:#16a34a;} .tx-amt.neg{color:#dc2626;}
+
+    /* ══ SPENDING BREAKDOWN ══ */
+    .cat-list { margin-top:10px; }
+    .cat-item { display:flex;align-items:center;gap:9px;margin-bottom:10px; }
+    .cat-dot  { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+    .cat-name { flex:1;font-size:0.82rem;color:#475569;font-weight:500; }
+    .cat-bar-wrap { width:100px; }
+    .cat-bar { height:6px;background:#e0f2fe;border-radius:3px;overflow:hidden; }
+    .cat-bar-fill { height:100%;border-radius:3px; }
+    .cat-amt  { font-size:0.8rem;font-weight:700;color:#1e293b;width:70px;text-align:right; }
+    .cat-pct  { font-size:0.7rem;color:#94a3b8;width:30px;text-align:right; }
+
+    /* ══ SAVINGS PROGRESS ══ */
+    .sav-top { display:flex;justify-content:space-between;align-items:center;font-size:0.84rem;margin-bottom:10px; }
+    .sav-big-bar { height:20px;background:#e0f2fe;border-radius:10px;overflow:hidden;margin-bottom:8px;position:relative; }
+    .sav-fill { height:100%;border-radius:10px;transition:width 0.8s cubic-bezier(.4,0,.2,1);position:relative; }
+    .sav-fill::after { content:'';position:absolute;right:0;top:0;bottom:0;width:26px;background:rgba(255,255,255,0.25);border-radius:0 10px 10px 0; }
+    .sav-labels { display:flex;justify-content:space-between;font-size:0.72rem;color:#94a3b8;margin-bottom:18px; }
+    .sav-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
+    .sav-stat { background:#f0f9ff;border-radius:14px;padding:14px;text-align:center; }
+    .sav-stat-val { font-size:1.15rem;font-weight:800; }
+    .sav-stat-lab { font-size:0.7rem;color:#64748b;margin-top:3px; }
+    .sav-goal-bar { margin-top:16px; }
+    .sav-goal-item { display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:0.8rem; }
+    .sav-goal-label { width:130px;color:#475569; }
+    .sav-goal-track { flex:1;height:8px;background:#e0f2fe;border-radius:4px;overflow:hidden; }
+    .sav-goal-fill  { height:100%;border-radius:4px; }
+    .sav-goal-val   { width:60px;text-align:right;color:#64748b; }
+
+    /* ══ HEATMAP ══ */
+    .hm-grid { display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px; }
+    .hm-day-labels { display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:4px; }
+    .hm-day-label  { font-size:0.62rem;color:#94a3b8;text-align:center;font-weight:600; }
+    .hm-cell { aspect-ratio:1;border-radius:5px;position:relative;cursor:default;transition:transform 0.12s; }
+    .hm-cell:hover { transform:scale(1.35);z-index:2; }
+    .hm-cell.empty { background:transparent; }
+    .hm-cell.none  { background:#e0f2fe; }
+    .hm-cell.low   { background:#86efac; }
+    .hm-cell.med   { background:#fbbf24; }
+    .hm-cell.high  { background:#f87171; }
+    .hm-cell.today { outline:2.5px solid #0369a1;outline-offset:1px; }
+    .hm-tip { display:none;position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:5px 10px;border-radius:7px;font-size:0.7rem;white-space:nowrap;z-index:10;pointer-events:none; }
+    .hm-tip::after { content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#1e293b; }
+    .hm-cell:hover .hm-tip { display:block; }
+    .hm-legend { display:flex;align-items:center;gap:8px;margin-top:12px;font-size:0.73rem;color:#64748b;flex-wrap:wrap; }
+    .hm-dot { width:12px;height:12px;border-radius:3px; }
+
+    /* ══ LAYOUT ══ */
+    .two-col { display:grid;grid-template-columns:1fr 1fr;gap:20px; }
+    .row-mb  { margin-bottom:20px; }
+
+    @media(max-width:1100px){ .metrics-grid{grid-template-columns:1fr 1fr;} }
+    @media(max-width:768px){ .sidebar{width:100%;position:relative}.main{margin-left:0;padding:16px}.two-col,.metrics-grid{grid-template-columns:1fr}.app-shell{flex-direction:column} }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sidebar">
+  <!-- Logo -->
+  <div class="sb-logo">
+    <div class="sb-logo-title">💰 FinanceIQ</div>
+    <div class="sb-logo-sub">Personal Finance Manager</div>
+  </div>
+
+  <!-- User -->
+  <div class="sb-user">
+    <div class="sb-avatar">M</div>
+    <div>
+      <div class="sb-uname">Meghna</div>
+      <div class="sb-urole">Premium Account</div>
+    </div>
+    <div class="sb-online"></div>
+  </div>
+
+  <!-- Nav -->
+  <nav>
+    <div class="sb-section">Main</div>
+    <a class="nav-link active" href="dashboard.html"><span class="icon">🏠</span> Dashboard <span class="nav-badge">Live</span></a>
+    <a class="nav-link" href="transactions.html"><span class="icon">📋</span> Transactions</a>
+    <a class="nav-link" href="budget.html"><span class="icon">🎯</span> Budget Planner</a>
+    <div class="sb-section">Insights</div>
+    <a class="nav-link" href="analytics.html"><span class="icon">📊</span> Analytics</a>
+    <a class="nav-link" href="ai-advisor.html"><span class="icon">🤖</span> AI Coach <span class="nav-badge">AI</span></a>
+  </nav>
+
+  <!-- Summary cards -->
+  <div class="sb-summary" id="sb-summary"></div>
+
+  <!-- Quick actions -->
+  <div class="sb-section" style="padding-top:4px">Quick Actions</div>
+  <div class="sb-actions">
+    <a class="sb-action-btn" href="transactions.html">➕ Add Transaction</a>
+    <a class="sb-action-btn" href="budget.html">🎯 Update Budget</a>
+    <a class="sb-action-btn" href="ai-advisor.html">🤖 Ask AI Coach</a>
+  </div>
+
+  <!-- Tip -->
+  <div class="sb-tip" id="sb-tip">💡 Loading your tip…</div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <div id="hero-wave" style="font-size:1.8rem;margin-bottom:4px">👋</div>
+        <div class="hero-greeting" id="hero-greeting">Hello, Welcome Meghna!</div>
+        <div class="hero-sub" id="hero-sub">Loading your overview…</div>
+        <div class="hero-pills">
+          <a class="hero-pill w" href="transactions.html">➕ Add Transaction</a>
+          <a class="hero-pill g" href="ai-advisor.html">🤖 AI Coach</a>
+          <a class="hero-pill g" href="analytics.html">📊 Full Analytics</a>
+        </div>
+      </div>
+      <div class="hero-stats" id="hero-stats"></div>
+    </div>
+  </div>
+
+  <!-- METRIC CARDS -->
+  <div class="metrics-grid" id="metrics"></div>
+
+  <!-- ROW: ALERTS + HEALTH SCORE -->
+  <div class="two-col row-mb">
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-head">
+        <div class="sec-title">🔔 Smart Alerts</div>
+      </div>
+      <div id="smart-alerts"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-head">
+        <div class="sec-title">❤️ Financial Health Score</div>
+      </div>
+      <div class="health-wrap">
+        <div class="score-ring">
+          <svg width="100" height="100" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#e0f2fe" stroke-width="9"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#16a34a" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="264" id="score-arc"/>
+          </svg>
+          <div class="score-center">
+            <div class="score-num" id="health-score">—</div>
+            <div class="score-sub">/ 100</div>
+          </div>
+        </div>
+        <div class="score-pillars">
+          <div id="health-bars"></div>
+          <div class="mo-chips" id="mo-chips"></div>
+        </div>
+      </div>
+      <div class="score-tip" id="health-tip"></div>
+    </div>
+  </div>
+
+  <!-- ROW: RECENT TRANSACTIONS + SPENDING BREAKDOWN -->
+  <div class="two-col row-mb">
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-head">
+        <div class="sec-title">🧾 Recent Transactions</div>
+        <a class="sec-link" href="transactions.html">View all →</a>
+      </div>
+      <div class="tx-list" id="recent-tx"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-head">
+        <div class="sec-title">🥧 Spending Breakdown</div>
+        <span id="spend-month" style="font-size:0.75rem;color:#94a3b8"></span>
+      </div>
+      <div id="spend-empty" style="text-align:center;padding:40px 20px;color:#94a3b8;display:none">
+        <div style="font-size:2.5rem;margin-bottom:10px">📊</div>
+        <p style="font-size:0.84rem">No expenses recorded yet.<br>
+        <a href="transactions.html" style="color:#0ea5e9;font-weight:700">Add a transaction →</a></p>
+      </div>
+      <div id="spend-content">
+        <div class="cat-list" id="cat-list"></div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid #e0f2fe;display:flex;justify-content:space-between;font-size:0.8rem">
+          <span style="color:#64748b">Total expenses this month</span>
+          <strong id="cat-total" style="color:#dc2626"></strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTHLY SAVINGS PROGRESS -->
+  <div class="card">
+    <div class="sec-head">
+      <div class="sec-title">💰 Monthly Savings Progress</div>
+      <span id="savings-badge" style="font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:10px"></span>
+    </div>
+    <div id="savings-section"></div>
+  </div>
+
+  <!-- EXPENSE CALENDAR HEATMAP -->
+  <div class="card">
+    <div class="sec-head">
+      <div class="sec-title">📅 Expense Calendar Heatmap</div>
+      <span id="hm-month-label" style="font-size:0.78rem;color:#0369a1;font-weight:700"></span>
+    </div>
+    <div class="hm-day-labels">
+      <div class="hm-day-label">Sun</div><div class="hm-day-label">Mon</div>
+      <div class="hm-day-label">Tue</div><div class="hm-day-label">Wed</div>
+      <div class="hm-day-label">Thu</div><div class="hm-day-label">Fri</div>
+      <div class="hm-day-label">Sat</div>
+    </div>
+    <div class="hm-grid" id="hm-grid"></div>
+    <div class="hm-legend">
+      <span style="font-weight:600">Spending:</span>
+      <div class="hm-dot" style="background:#e0f2fe;border:1px solid #bae6fd"></div>None
+      <div class="hm-dot" style="background:#86efac"></div>🟩 Low
+      <div class="hm-dot" style="background:#fbbf24"></div>🟨 Medium
+      <div class="hm-dot" style="background:#f87171"></div>🟥 High
+      <span style="color:#94a3b8;font-size:0.7rem">Today = blue border</span>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script src="data.js"></script>
+<script>
+// ── Seed data so there is ALWAYS something to show ────────────
+// We override seedDemoData to ensure current month has data
+function ensureCurrentMonthData() {
+  const existing = getData();
+  const month = getMonth();
+  const hasCurrent = existing.some(t => t.date.startsWith(month));
+  if (!hasCurrent) {
+    // Add current-month records to existing data
+    const today = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const d = (day) => `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(Math.min(day, today.getDate()))}`;
+    const extra = [
+      {id:Date.now()+1, type:'income',  amount:45000, date:d(1),  desc:'Monthly salary',      cat:'Salary'},
+      {id:Date.now()+2, type:'expense', amount:8500,  date:d(2),  desc:'Rent payment',         cat:'Housing'},
+      {id:Date.now()+3, type:'expense', amount:2200,  date:d(3),  desc:'Grocery shopping',     cat:'Food'},
+      {id:Date.now()+4, type:'expense', amount:620,   date:d(5),  desc:'Uber rides',           cat:'Transport'},
+      {id:Date.now()+5, type:'income',  amount:8000,  date:d(7),  desc:'Freelance project',    cat:'Freelance'},
+      {id:Date.now()+6, type:'expense', amount:1900,  date:d(9),  desc:'Zomato orders',        cat:'Food'},
+      {id:Date.now()+7, type:'expense', amount:2800,  date:d(11), desc:'Clothes shopping',     cat:'Shopping'},
+      {id:Date.now()+8, type:'expense', amount:480,   date:d(13), desc:'Movie & OTT',          cat:'Entertainment'},
+      {id:Date.now()+9, type:'expense', amount:1200,  date:d(15), desc:'Electricity bill',     cat:'Utilities'},
+      {id:Date.now()+10,type:'expense', amount:800,   date:d(17), desc:'Doctor consultation',  cat:'Health'},
+    ];
+    saveData([...existing, ...extra]);
+    // Also set budgets if none
+    if (!Object.keys(getBudgets()).length) {
+      saveBudgetData({Food:5000,Transport:1500,Housing:9000,Entertainment:1200,Health:2000,Shopping:3000,Utilities:2000,Other:1000});
+    }
+  }
+}
+ensureCurrentMonthData();
+
+// ── Helpers ───────────────────────────────────────────────────
+const month = getMonth();
+const txs   = getData();
+const moTxs = txs.filter(t => t.date.startsWith(month));
+const all   = getSummary(txs);
+const mo    = getSummary(moTxs);
+const monthly = getMonthlyData(txs);
+const mKeys   = Object.keys(monthly).sort();
+
+// ── SIDEBAR ───────────────────────────────────────────────────
+document.getElementById('sb-summary').innerHTML = [
+  {val: fmt(all.balance),   lab: 'Net Balance'},
+  {val: txs.length+'',      lab: 'All Transactions'},
+  {val: fmt(mo.income),     lab: 'Month Income'},
+  {val: fmt(mo.expense),    lab: 'Month Expense'},
+].map(s=>`<div class="sb-card"><div class="sb-card-val">${s.val}</div><div class="sb-card-lab">${s.lab}</div></div>`).join('');
+
+const rate = mo.income>0?((mo.income-mo.expense)/mo.income*100).toFixed(1):0;
+const tips = [
+  rate<10  ? '⚠️ Your savings rate is below 10% this month. Try cutting back on one category.' : null,
+  rate>=20 ? '🌟 Great savings rate! Consider investing your surplus in a SIP or FD.' : null,
+  !Object.keys(getBudgets()).length ? '💡 <strong>Set budgets</strong> in the Budget Planner to track limits automatically.' : null,
+  '💡 Use the <strong>AI Coach</strong> to get personalised tips based on your spending patterns.',
+].filter(Boolean)[0];
+document.getElementById('sb-tip').innerHTML = tips;
+
+// ── HERO ──────────────────────────────────────────────────────
+(function(){
+  const h = new Date().getHours();
+  const wave = h<12?'🌅':h<17?'☀️':'🌙';
+  const greetings = ['Hello, Welcome Meghna! 👑','Hey Meghna, great to see you! 💫','Welcome back, Meghna! 🌟'];
+  document.getElementById('hero-wave').textContent = wave;
+  document.getElementById('hero-greeting').textContent = greetings[new Date().getDate()%3];
+  const saved = mo.income - mo.expense;
+  document.getElementById('hero-sub').textContent =
+    `This month — earned ${fmt(mo.income)}, spent ${fmt(mo.expense)}, saved ${fmt(Math.max(saved,0))} (${rate}% savings rate)`;
+  document.getElementById('hero-stats').innerHTML = [
+    {val:fmt(mo.income),           lab:'Income'},
+    {val:fmt(mo.expense),          lab:'Expenses'},
+    {val:fmt(Math.max(saved,0)),   lab:'Saved'},
+    {val:rate+'%',                 lab:'Savings Rate'},
+  ].map(s=>`<div class="hero-stat"><div class="hero-stat-val">${s.val}</div><div class="hero-stat-lab">${s.lab}</div></div>`).join('');
+})();
+
+// ── METRICS ───────────────────────────────────────────────────
+(function(){
+  const prev    = mKeys[mKeys.length-2];
+  const prevMo  = prev ? monthly[prev] : null;
+  const expTrend = prevMo&&prevMo.expense>0
+    ? (((mo.expense-prevMo.expense)/prevMo.expense)*100).toFixed(0) : null;
+  const incTrend = prevMo&&prevMo.income>0
+    ? (((mo.income-prevMo.income)/prevMo.income)*100).toFixed(0) : null;
+  const saved = mo.income - mo.expense;
+
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric mb">
+      <div class="metric-icon">💳</div>
+      <div class="metric-label">Total Balance</div>
+      <div class="metric-value blue">${fmt(all.balance)}</div>
+      <div class="metric-sub">All time net</div>
+    </div>
+    <div class="metric mg">
+      <div class="metric-icon">📈</div>
+      <div class="metric-label">Income This Month</div>
+      <div class="metric-value green">${fmt(mo.income)}</div>
+      <div class="metric-sub">${month}</div>
+      ${incTrend!==null?`<div class="metric-badge ${incTrend>=0?'up':'down'}">${incTrend>=0?'↑':'↓'}${Math.abs(incTrend)}% vs last</div>`:''}
+    </div>
+    <div class="metric mr">
+      <div class="metric-icon">📉</div>
+      <div class="metric-label">Expenses This Month</div>
+      <div class="metric-value red">${fmt(mo.expense)}</div>
+      <div class="metric-sub">${month}</div>
+      ${expTrend!==null?`<div class="metric-badge ${expTrend<=0?'up':'down'}">${expTrend>0?'↑':'↓'}${Math.abs(expTrend)}% vs last</div>`:''}
+    </div>
+    <div class="metric ma">
+      <div class="metric-icon">💰</div>
+      <div class="metric-label">Saved This Month</div>
+      <div class="metric-value ${saved>=0?'green':'red'}">${fmt(Math.abs(saved))}</div>
+      <div class="metric-sub">Rate: ${rate}% ${parseFloat(rate)>=20?'🎉':parseFloat(rate)>=10?'👍':'💪'}</div>
+    </div>`;
+})();
+
+// ── SMART ALERTS ──────────────────────────────────────────────
+(function(){
+  const curr = mKeys[mKeys.length-1], prev = mKeys[mKeys.length-2];
+  const catCurr={}, catPrev={};
+  txs.filter(t=>t.type==='expense'&&t.date.startsWith(curr)).forEach(t=>{catCurr[t.cat]=(catCurr[t.cat]||0)+t.amount;});
+  if(prev) txs.filter(t=>t.type==='expense'&&t.date.startsWith(prev)).forEach(t=>{catPrev[t.cat]=(catPrev[t.cat]||0)+t.amount;});
+
+  const alerts=[];
+  Object.entries(catCurr).forEach(([cat,cur])=>{
+    const pre=catPrev[cat]||0;
+    if(pre>0){
+      const pct=((cur-pre)/pre*100);
+      if(pct>=20){
+        const save=Math.round(cur*0.15);
+        alerts.push({type:pct>=50?'danger':'warn',icon:'⚠️',
+          title:`${cat} up ${pct.toFixed(0)}% vs last month`,
+          body:`💡 Cutting ${cat.toLowerCase()} by 15% could save you ${fmt(save)} this month.`});
+      } else if(pct<=-20){
+        alerts.push({type:'ok',icon:'🎉',title:`${cat} spending down ${Math.abs(pct).toFixed(0)}%!`,body:`You saved ${fmt(pre-cur)} compared to last month. Keep it up!`});
+      }
+    }
+  });
+
+  const budgets=getBudgets();
+  Object.entries(budgets).forEach(([cat,budget])=>{
+    const s=catCurr[cat]||0, p=s/budget*100;
+    if(p>=100) alerts.push({type:'danger',icon:'🚨',title:`${cat} budget exceeded`,body:`Spent ${fmt(s)} of ${fmt(budget)} — ${fmt(s-budget)} over.`});
+    else if(p>=80) alerts.push({type:'warn',icon:'⚠️',title:`${cat} at ${p.toFixed(0)}% of budget`,body:`${fmt(budget-s)} remaining for the rest of the month.`});
+  });
+
+  if(parseFloat(rate)>=20) alerts.push({type:'ok',icon:'✅',title:`Savings rate ${rate}% — on track!`,body:'You are meeting the 20% savings target. Consider investing surplus in SIPs or FDs.'});
+  else if(parseFloat(rate)<10&&mo.income>0) alerts.push({type:'danger',icon:'🚨',title:`Savings rate only ${rate}% — below target`,body:'Aim for at least 20%. Try reducing your top spending category first.'});
+
+  if(!alerts.length) alerts.push({type:'ok',icon:'✅',title:'All clear! Finances look healthy.',body:'Keep tracking daily to maintain your score.'});
+
+  document.getElementById('smart-alerts').innerHTML = alerts.slice(0,4).map(a=>`
+    <div class="alert-row ${a.type}">
+      <span class="a-icon">${a.icon}</span>
+      <div><strong>${a.title}</strong>${a.body}</div>
+    </div>`).join('');
+})();
+
+// ── HEALTH SCORE ─────────────────────────────────────────────
+(function(){
+  const savRate = mo.income>0?(mo.income-mo.expense)/mo.income*100:0;
+  const budCount = Object.keys(getBudgets()).length;
+  const txCount  = moTxs.length;
+  const s1=Math.min(savRate*2,40), s2=Math.min(budCount*4,20), s3=Math.min(txCount*2,20), s4=mo.income>0?20:0;
+  const total=Math.round(s1+s2+s3+s4);
+  const color=total>=70?'#16a34a':total>=45?'#f59e0b':'#dc2626';
+
+  document.getElementById('health-score').textContent=total;
+  document.getElementById('health-score').style.color=color;
+  const arc=document.getElementById('score-arc');
+  arc.style.stroke=color; arc.style.strokeDashoffset=264-(total/100)*264;
+
+  document.getElementById('health-bars').innerHTML=[
+    {label:'Savings rate',val:Math.round(s1),max:40,color:'#16a34a'},
+    {label:'Budgets set', val:Math.round(s2),max:20,color:'#0ea5e9'},
+    {label:'Tx habit',    val:Math.round(s3),max:20,color:'#f59e0b'},
+    {label:'Income logged',val:Math.round(s4),max:20,color:'#16a34a'},
+  ].map(b=>`<div class="sp-row">
+    <div class="sp-label">${b.label}</div>
+    <div class="sp-track"><div class="sp-fill" style="width:${(b.val/b.max*100).toFixed(0)}%;background:${b.color}"></div></div>
+    <div class="sp-val" style="color:${b.color}">${b.val}</div>
+  </div>`).join('');
+
+  document.getElementById('mo-chips').innerHTML=mKeys.slice(-4).map(k=>{
+    const {income:inc,expense:exp}=monthly[k];
+    const r=inc>0?Math.round(Math.min((inc-exp)/inc*100*2,40))+40:20;
+    const c=r>=70?'#16a34a':r>=45?'#f59e0b':'#dc2626';
+    return `<div class="mo-chip" style="border-color:${c};color:${c}">${k}<span class="mc-s">~${r}</span></div>`;
+  }).join('');
+
+  const tip=[
+    total<40 ? '💡 Log daily transactions and set 3+ budgets to boost your score.' : null,
+    savRate<20 ? `💡 Currently saving ${savRate.toFixed(1)}%. Aim for 20% by trimming one category.` : null,
+    budCount===0 ? '💡 No budgets set. Visit Budget Planner to unlock that score component.' : null,
+    total>=70 ? '🌟 Excellent habits! Invest your surplus in SIPs, PPF, or an FD for better returns.' : null,
+  ].filter(Boolean)[0];
+  document.getElementById('health-tip').textContent = tip||'✅ Keep tracking every day for a higher score!';
+})();
+
+// ── RECENT TRANSACTIONS ───────────────────────────────────────
+(function(){
+  const recent = txs.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,8);
+  const el = document.getElementById('recent-tx');
+  if(!recent.length){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8">📭 No transactions yet. <a href="transactions.html" style="color:#0ea5e9;font-weight:700">Add one!</a></div>';
+    return;
+  }
+  el.innerHTML=recent.map(t=>`
+    <div class="tx-row">
+      <div class="tx-icon ${t.type==='income'?'inc':'exp'}">${t.type==='income'?'↑':'↓'}</div>
+      <div class="tx-meta">
+        <div class="tx-desc">${t.desc}</div>
+        <div class="tx-date">${t.date}</div>
+      </div>
+      <div class="tx-cat">${t.cat}</div>
+      <div class="tx-amt ${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div>
+    </div>`).join('');
+})();
+
+// ── SPENDING BREAKDOWN (no chart — just category bars) ────────
+(function(){
+  const expenses = moTxs.filter(t=>t.type==='expense');
+  const totals   = {};
+  expenses.forEach(t=>{totals[t.cat]=(totals[t.cat]||0)+t.amount;});
+  const cats = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const total= cats.reduce((s,[,v])=>s+v,0);
+
+  document.getElementById('spend-month').textContent = month;
+
+  if(!cats.length){
+    document.getElementById('spend-empty').style.display='block';
+    document.getElementById('spend-content').style.display='none';
+    return;
+  }
+  document.getElementById('spend-empty').style.display='none';
+  document.getElementById('spend-content').style.display='block';
+  document.getElementById('cat-total').textContent = fmt(total);
+
+  const maxVal = cats[0][1];
+  document.getElementById('cat-list').innerHTML = cats.map(([cat,amt])=>`
+    <div class="cat-item">
+      <div class="cat-dot" style="background:${CAT_COLORS[cat]||'#888'}"></div>
+      <div class="cat-name">${cat}</div>
+      <div class="cat-bar-wrap">
+        <div class="cat-bar">
+          <div class="cat-bar-fill" style="width:${(amt/maxVal*100).toFixed(1)}%;background:${CAT_COLORS[cat]||'#888'}"></div>
+        </div>
+      </div>
+      <div class="cat-amt">${fmt(amt)}</div>
+      <div class="cat-pct">${(amt/total*100).toFixed(0)}%</div>
+    </div>`).join('');
+})();
+
+// ── SAVINGS PROGRESS ──────────────────────────────────────────
+(function(){
+  const saved = mo.income - mo.expense;
+  const savRate = mo.income>0?saved/mo.income*100:0;
+  const pct = Math.min(Math.max(savRate/20*100,0),100);
+  const barColor = savRate>=20?'linear-gradient(90deg,#16a34a,#22c55e)':savRate>=10?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#dc2626,#f87171)';
+  const badge = savRate>=20?{txt:'On Track 🎉',bg:'#dcfce7',col:'#16a34a'}:savRate>=10?{txt:'Getting There 👍',bg:'#fef3c7',col:'#92400e'}:{txt:'Needs Attention 💪',bg:'#fee2e2',col:'#991b1b'};
+
+  document.getElementById('savings-badge').textContent=badge.txt;
+  document.getElementById('savings-badge').style.background=badge.bg;
+  document.getElementById('savings-badge').style.color=badge.col;
+
+  // Category savings tips
+  const expenses = moTxs.filter(t=>t.type==='expense');
+  const catTotals={};
+  expenses.forEach(t=>{catTotals[t.cat]=(catTotals[t.cat]||0)+t.amount;});
+  const topCats=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const budgets=getBudgets();
+
+  document.getElementById('savings-section').innerHTML=`
+    <div class="sav-top">
+      <span style="font-weight:700;color:#1e293b">Saved: <span style="color:${saved>=0?'#16a34a':'#dc2626'}">${fmt(Math.max(saved,0))}</span></span>
+      <span style="color:#64748b;font-size:0.82rem">Target: <strong style="color:#0ea5e9">${fmt(mo.income*0.2)}</strong> (20% of ${fmt(mo.income)})</span>
+    </div>
+    <div class="sav-big-bar">
+      <div class="sav-fill" style="width:${pct}%;background:${barColor}"></div>
+    </div>
+    <div class="sav-labels">
+      <span>₹0</span>
+      <span style="font-weight:700;color:${savRate>=20?'#16a34a':savRate>=10?'#f59e0b':'#dc2626'}">${savRate.toFixed(1)}% saved</span>
+      <span>${fmt(mo.income*0.2)}</span>
+    </div>
+    <div class="sav-stats">
+      <div class="sav-stat">
+        <div class="sav-stat-val" style="color:#16a34a">${fmt(Math.max(saved,0))}</div>
+        <div class="sav-stat-lab">Amount Saved</div>
+      </div>
+      <div class="sav-stat">
+        <div class="sav-stat-val" style="color:#0ea5e9">${savRate.toFixed(1)}%</div>
+        <div class="sav-stat-lab">Savings Rate</div>
+      </div>
+      <div class="sav-stat">
+        <div class="sav-stat-val" style="color:${saved>=mo.income*0.2?'#16a34a':'#f59e0b'}">${saved>=mo.income*0.2?'Achieved ✅':fmt(Math.max(mo.income*0.2-saved,0))}</div>
+        <div class="sav-stat-lab">${saved>=mo.income*0.2?'Goal Status':'Remaining'}</div>
+      </div>
+    </div>
+    ${topCats.length?`
+    <div class="sav-goal-bar">
+      <div style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Top spending categories vs budget</div>
+      ${topCats.map(([cat,amt])=>{
+        const budget=budgets[cat]||0;
+        const pct=budget>0?Math.min(amt/budget*100,100):50;
+        const col=pct>=100?'#dc2626':pct>=80?'#f59e0b':'#16a34a';
+        return `<div class="sav-goal-item">
+          <div class="sav-goal-label"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${CAT_COLORS[cat]||'#888'};margin-right:6px"></span>${cat}</div>
+          <div class="sav-goal-track"><div class="sav-goal-fill" style="width:${pct.toFixed(0)}%;background:${col}"></div></div>
+          <div class="sav-goal-val">${fmt(amt)}${budget?` / ${fmt(budget)}`:''}</div>
+        </div>`;
+      }).join('')}
+    </div>`:''}`;
+})();
+
+// ── HEATMAP ───────────────────────────────────────────────────
+(function(){
+  const now=new Date(), year=now.getFullYear(), mon=now.getMonth();
+  const label=now.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  document.getElementById('hm-month-label').textContent=label;
+
+  const dailySpend={};
+  moTxs.filter(t=>t.type==='expense').forEach(t=>{
+    const d=parseInt(t.date.split('-')[2]);
+    dailySpend[d]=(dailySpend[d]||0)+t.amount;
+  });
+  const vals=Object.values(dailySpend);
+  const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+  const firstDay=new Date(year,mon,1).getDay();
+  const days=new Date(year,mon+1,0).getDate();
+
+  let cells='';
+  for(let i=0;i<firstDay;i++) cells+='<div class="hm-cell empty"></div>';
+  for(let d=1;d<=days;d++){
+    const s=dailySpend[d]||0;
+    const cls=s===0?'none':s<avg*0.6?'low':s<avg*1.4?'med':'high';
+    const today=d===now.getDate()?'today':'';
+    cells+=`<div class="hm-cell ${cls} ${today}">
+      <div class="hm-tip">${d} ${label.split(' ')[0]}${s>0?': '+fmt(s):': No spend'}</div>
+    </div>`;
+  }
+  document.getElementById('hm-grid').innerHTML=cells;
+})();
+</script>
+</body>
+</html>

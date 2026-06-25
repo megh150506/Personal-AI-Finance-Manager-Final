@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analytics — FinanceIQ</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <style>
+    .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 18px; }
+    .chart-card .card-title { margin-bottom: 16px; }
+    select.period-sel { width:auto;padding:6px 10px;font-size:0.8rem;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text); }
+    .cat-leaderboard { display:flex;flex-direction:column; }
+    .cat-row { display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.85rem; }
+    .cat-row:last-child { border-bottom:none; }
+    .cat-rank { width:22px;color:var(--muted);font-weight:700;font-size:0.8rem; }
+    .cat-dot  { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+    .cat-name { flex:1; }
+    .cat-bar-wrap { width:130px; }
+    .cat-mini-bar  { height:6px;background:var(--bg3);border-radius:3px;overflow:hidden; }
+    .cat-mini-fill { height:100%;border-radius:3px; }
+    .cat-pct  { width:40px;text-align:right;color:var(--muted);font-size:0.8rem; }
+    .cat-amt  { width:90px;text-align:right;font-weight:600; }
+
+    /* ── Sunburst ── */
+    #sunburst-wrap {
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    }
+    #sunburst-svg { flex-shrink: 0; }
+    #sunburst-legend { flex: 1; min-width: 180px; }
+    .sb-legend-item { display:flex;align-items:center;gap:8px;font-size:0.82rem;padding:4px 0;cursor:pointer; }
+    .sb-legend-dot  { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+    .sb-legend-name { flex:1; }
+    .sb-legend-val  { color:var(--muted); }
+    #sunburst-center { font-size:0.78rem;color:var(--muted);text-align:center;margin-top:8px; }
+    .sb-breadcrumb  { font-size:0.8rem;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap; }
+    .sb-bc-item     { cursor:pointer;transition:color 0.15s; }
+    .sb-bc-item:hover{ color:var(--green); }
+    .sb-bc-sep      { color:var(--border); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">💰</span> FinanceIQ</div>
+    <nav class="sidebar-nav">
+      <a class="nav-link"        href="dashboard.html">    <span class="icon">🏠</span> Dashboard</a>
+      <a class="nav-link"        href="transactions.html"> <span class="icon">📋</span> Transactions</a>
+      <a class="nav-link"        href="budget.html">       <span class="icon">🎯</span> Budget</a>
+      <a class="nav-link active" href="analytics.html">    <span class="icon">📊</span> Analytics</a>
+      <a class="nav-link"        href="ai-advisor.html">   <span class="icon">🤖</span> AI Coach</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <h1 class="page-title">Analytics</h1>
+    <p class="page-sub">Deep dive into your financial trends and spending patterns.</p>
+
+    <div class="metrics-grid" id="metrics"></div>
+
+    <!-- ⑤ SUNBURST CHART -->
+    <div class="chart-card">
+      <div class="card-title">🌞 Sunburst Spending Breakdown</div>
+      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:14px">
+        Inner ring = categories · Outer ring = sub-descriptions. Click a segment to zoom in.
+      </p>
+      <div class="sb-breadcrumb" id="sb-breadcrumb"></div>
+      <div id="sunburst-wrap">
+        <svg id="sunburst-svg" width="280" height="280"></svg>
+        <div id="sunburst-legend"></div>
+      </div>
+      <div id="sunburst-center"></div>
+    </div>
+
+    <!-- Bar + Line -->
+    <div class="two-col">
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="card-title" style="margin:0">Monthly income vs expenses</div>
+          <select class="period-sel" id="months-sel" onchange="renderBarLine()">
+            <option value="6">Last 6 months</option>
+            <option value="12">Last 12 months</option>
+            <option value="0">All time</option>
+          </select>
+        </div>
+        <div style="position:relative;height:230px"><canvas id="bar-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Savings trend</div>
+        <div style="position:relative;height:230px"><canvas id="line-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Pie + leaderboard -->
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="card-title">Spending by category (doughnut)</div>
+        <div style="position:relative;height:230px"><canvas id="pie-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Top spending categories</div>
+        <div class="cat-leaderboard" id="cat-leader"></div>
+      </div>
+    </div>
+
+    <!-- Income bar -->
+    <div class="chart-card">
+      <div class="card-title">Income sources</div>
+      <div style="position:relative;height:160px"><canvas id="income-bar"></canvas></div>
+    </div>
+
+    <!-- Monthly table -->
+    <div class="chart-card">
+      <div class="card-title">Monthly summary table</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+          <thead><tr id="summary-head" style="border-bottom:1px solid var(--border)"></tr></thead>
+          <tbody id="summary-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+seedDemoData();
+const charts = {};
+
+// ── Metrics ───────────────────────────────────────────────────
+function renderMetrics() {
+  const txs = getData();
+  const { income, expense, balance } = getSummary(txs);
+  const monthly = getMonthlyData(txs);
+  const mKeys   = Object.keys(monthly).sort();
+  const rate    = income > 0 ? (balance/income*100).toFixed(1) : 0;
+  const avgMonthlyExp = mKeys.length ? (txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)/mKeys.length).toFixed(0) : 0;
+
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green">${fmt(income)}</div><div class="metric-sub">All time</div></div>
+    <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red">${fmt(expense)}</div><div class="metric-sub">All time</div></div>
+    <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value blue">${fmt(balance)}</div><div class="metric-sub">Savings rate: ${rate}%</div></div>
+    <div class="metric"><div class="metric-label">Avg monthly expense</div><div class="metric-value amber">${fmt(parseFloat(avgMonthlyExp))}</div><div class="metric-sub">Over ${mKeys.length} months</div></div>`;
+}
+
+// ── ⑤ SUNBURST CHART (D3) ─────────────────────────────────────
+function buildSunburstData() {
+  const txs = getData().filter(t => t.type === 'expense');
+  // Group: categories → sub-items (by description, trimmed to 15 chars)
+  const catMap = {};
+  txs.forEach(t => {
+    if (!catMap[t.cat]) catMap[t.cat] = {};
+    const key = t.desc.length > 16 ? t.desc.substring(0,14)+'…' : t.desc;
+    catMap[t.cat][key] = (catMap[t.cat][key] || 0) + t.amount;
+  });
+
+  return {
+    name: 'Expenses',
+    children: Object.entries(catMap).map(([cat, subs]) => ({
+      name: cat,
+      color: CAT_COLORS[cat] || '#888',
+      children: Object.entries(subs).map(([desc, val]) => ({ name: desc, value: val }))
+    }))
+  };
+}
+
+function renderSunburst() {
+  const data = buildSunburstData();
+  if (!data.children.length) {
+    document.getElementById('sunburst-wrap').innerHTML = '<p style="color:var(--muted);font-size:0.85rem">No expense data yet.</p>';
+    return;
+  }
+
+  const W = 280, H = 280, R = Math.min(W, H) / 2 - 4;
+  const svg = d3.select('#sunburst-svg').attr('viewBox', `0 0 ${W} ${H}`);
+  svg.selectAll('*').remove();
+  const g = svg.append('g').attr('transform', `translate(${W/2},${H/2})`);
+
+  const root = d3.hierarchy(data).sum(d => d.value || 0).sort((a,b) => b.value - a.value);
+  const partition = d3.partition().size([2 * Math.PI, R]);
+  partition(root);
+
+  const arc = d3.arc()
+    .startAngle(d => d.x0).endAngle(d => d.x1)
+    .innerRadius(d => d.y0).outerRadius(d => d.y1 - 2);
+
+  // Color: inner ring uses cat color, outer ring uses lighter shade
+  function nodeColor(d) {
+    if (d.depth === 1) return d.data.color || CAT_COLORS[d.data.name] || '#888';
+    if (d.depth === 2) {
+      const parentColor = d.parent?.data.color || '#888';
+      return parentColor + 'aa';
+    }
+    return '#444';
+  }
+
+  // Center label
+  const centerLabel = g.append('text')
+    .attr('text-anchor','middle').attr('dy','0.35em')
+    .style('font-size','11px').style('fill','#64748b').style('pointer-events','none');
+  centerLabel.text('Hover a slice');
+
+  const paths = g.selectAll('path')
+    .data(root.descendants().filter(d => d.depth > 0))
+    .join('path')
+    .attr('d', arc)
+    .attr('fill', d => nodeColor(d))
+    .attr('stroke', '#ffffff')
+    .attr('stroke-width', 1.5)
+    .style('cursor','pointer')
+    .style('transition','opacity 0.2s')
+    .on('mouseover', function(event, d) {
+      paths.style('opacity', n => n.ancestors().includes(d) || d.ancestors().includes(n) ? 1 : 0.3);
+      const total = root.value;
+      const pct   = total > 0 ? (d.value / total * 100).toFixed(1) : 0;
+      centerLabel.text(`${d.data.name}: ${fmt(d.value)} (${pct}%)`);
+    })
+    .on('mouseout', function() {
+      paths.style('opacity', 1);
+      centerLabel.text('Hover a slice');
+    });
+
+  // Legend (top-level categories only)
+  const total = root.value;
+  document.getElementById('sunburst-legend').innerHTML = root.children?.map(c => `
+    <div class="sb-legend-item">
+      <div class="sb-legend-dot" style="background:${c.data.color}"></div>
+      <div class="sb-legend-name">${c.data.name}</div>
+      <div class="sb-legend-val">${fmt(c.value)} (${total>0?(c.value/total*100).toFixed(1):0}%)</div>
+    </div>`).join('') || '';
+
+  document.getElementById('sb-breadcrumb').innerHTML = '';
+}
+
+// ── Bar + Line ────────────────────────────────────────────────
+function getFilteredMonthly() {
+  const n = parseInt(document.getElementById('months-sel').value);
+  const monthly = getMonthlyData(getData());
+  let keys = Object.keys(monthly).sort();
+  if (n > 0) keys = keys.slice(-n);
+  return { keys, monthly };
+}
+
+function renderBarLine() {
+  const { keys, monthly } = getFilteredMonthly();
+  if (charts.bar) charts.bar.destroy();
+  if (charts.line) charts.line.destroy();
+
+  charts.bar = new Chart(document.getElementById('bar-chart'), {
+    type: 'bar',
+    data: { labels: keys, datasets: [
+      { label:'Income',   data: keys.map(k=>monthly[k].income),  backgroundColor:'rgba(29,158,117,0.75)', borderRadius:4 },
+      { label:'Expenses', data: keys.map(k=>monthly[k].expense), backgroundColor:'rgba(226,75,74,0.75)',  borderRadius:4 }
+    ]},
+    options: { plugins:{legend:{labels:{color:'#64748b',font:{size:11}}}}, scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#cfe8f7'}},y:{ticks:{color:'#64748b',callback:v=>'₹'+v.toLocaleString()},grid:{color:'#cfe8f7'}}}, maintainAspectRatio:false }
+  });
+
+  const savings = keys.map(k => monthly[k].income - monthly[k].expense);
+  charts.line = new Chart(document.getElementById('line-chart'), {
+    type: 'line',
+    data: { labels: keys, datasets: [{ label:'Net savings', data:savings, borderColor:'#378add', backgroundColor:'rgba(55,138,221,0.1)', fill:true, tension:0.4, pointRadius:5, pointBackgroundColor:'#378add', pointBorderColor:'#ffffff', pointBorderWidth:2 }]},
+    options: { plugins:{legend:{labels:{color:'#64748b',font:{size:11}}}}, scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#cfe8f7'}},y:{ticks:{color:'#64748b',callback:v=>'₹'+v.toLocaleString()},grid:{color:'#cfe8f7'}}}, maintainAspectRatio:false }
+  });
+}
+
+function renderPie() {
+  if (charts.pie) charts.pie.destroy();
+  const txs  = getData().filter(t=>t.type==='expense');
+  const tots = {};
+  txs.forEach(t=>{tots[t.cat]=(tots[t.cat]||0)+t.amount;});
+  const labels = Object.keys(tots).sort((a,b)=>tots[b]-tots[a]);
+  if (!labels.length) return;
+  charts.pie = new Chart(document.getElementById('pie-chart'), {
+    type:'doughnut',
+    data:{labels,datasets:[{data:labels.map(l=>tots[l]),backgroundColor:labels.map(l=>CAT_COLORS[l]||'#888'),borderWidth:0}]},
+    options:{cutout:'55%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',font:{size:11},boxWidth:12,padding:14}}},maintainAspectRatio:false}
+  });
+}
+
+function renderLeaderboard() {
+  const txs  = getData().filter(t=>t.type==='expense');
+  const tots = {};
+  txs.forEach(t=>{tots[t.cat]=(tots[t.cat]||0)+t.amount;});
+  const sorted = Object.entries(tots).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0]?.[1]||1, total = sorted.reduce((s,[,v])=>s+v,0);
+  document.getElementById('cat-leader').innerHTML = sorted.slice(0,8).map(([cat,amt],i)=>`
+    <div class="cat-row">
+      <div class="cat-rank">#${i+1}</div>
+      <div class="cat-dot" style="background:${CAT_COLORS[cat]||'#888'}"></div>
+      <div class="cat-name">${cat}</div>
+      <div class="cat-bar-wrap"><div class="cat-mini-bar"><div class="cat-mini-fill" style="width:${(amt/max*100).toFixed(1)}%;background:${CAT_COLORS[cat]||'#888'}"></div></div></div>
+      <div class="cat-pct">${(amt/total*100).toFixed(1)}%</div>
+      <div class="cat-amt" style="color:var(--red)">${fmt(amt)}</div>
+    </div>`).join('');
+}
+
+function renderIncomeBar() {
+  if (charts.income) charts.income.destroy();
+  const txs=getData().filter(t=>t.type==='income'); const tots={};
+  txs.forEach(t=>{tots[t.cat]=(tots[t.cat]||0)+t.amount;});
+  const labels=Object.keys(tots);
+  charts.income = new Chart(document.getElementById('income-bar'),{
+    type:'bar', data:{labels,datasets:[{label:'Income',data:labels.map(l=>tots[l]),backgroundColor:'rgba(29,158,117,0.75)',borderRadius:6}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',callback:v=>'₹'+v.toLocaleString()},grid:{color:'#cfe8f7'}},y:{ticks:{color:'#1e293b',font:{size:12}},grid:{display:false}}},maintainAspectRatio:false}
+  });
+}
+
+function renderTable() {
+  const monthly = getMonthlyData(getData());
+  const keys    = Object.keys(monthly).sort().reverse().slice(0,12);
+  document.getElementById('summary-head').innerHTML = `
+    <th style="padding:8px 12px;color:var(--muted);font-size:0.75rem;text-align:left">Month</th>
+    <th style="padding:8px 12px;color:var(--muted);font-size:0.75rem;text-align:right">Income</th>
+    <th style="padding:8px 12px;color:var(--muted);font-size:0.75rem;text-align:right">Expenses</th>
+    <th style="padding:8px 12px;color:var(--muted);font-size:0.75rem;text-align:right">Savings</th>
+    <th style="padding:8px 12px;color:var(--muted);font-size:0.75rem;text-align:right">Rate</th>`;
+  document.getElementById('summary-body').innerHTML = keys.map(k=>{
+    const {income,expense}=monthly[k]; const saved=income-expense;
+    const rate=income>0?(saved/income*100).toFixed(1):'0.0';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px;font-weight:600">${k}</td>
+      <td style="padding:10px 12px;text-align:right;color:var(--green)">${fmt(income)}</td>
+      <td style="padding:10px 12px;text-align:right;color:var(--red)">${fmt(expense)}</td>
+      <td style="padding:10px 12px;text-align:right;color:${saved>=0?'var(--blue)':'var(--red)'}">${fmt(saved)}</td>
+      <td style="padding:10px 12px;text-align:right"><span class="badge ${parseFloat(rate)>=20?'green':parseFloat(rate)>=10?'amber':'red'}">${rate}%</span></td>
+    </tr>`;
+  }).join('');
+}
+
+renderMetrics();
+renderSunburst();
+renderBarLine();
+renderPie();
+renderLeaderboard();
+renderIncomeBar();
+renderTable();
+</script>
+</body>
+</html>

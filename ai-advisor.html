@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Financial Coach — FinanceIQ</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Coach Header ── */
+    .coach-header {
+      background: linear-gradient(135deg,#e0f9ff,#dcfce7);
+      border:1px solid var(--border); border-radius:14px;
+      padding:24px 28px; margin-bottom:22px;
+      display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    }
+    .coach-avatar {
+      width:64px;height:64px;border-radius:50%;flex-shrink:0;
+      background:linear-gradient(135deg,var(--green),var(--blue));
+      display:flex;align-items:center;justify-content:center;font-size:1.8rem;
+      box-shadow:0 0 0 3px rgba(29,158,117,0.25);
+    }
+    .coach-info h2 { font-size:1.15rem;font-weight:800;margin-bottom:3px; }
+    .coach-info p  { font-size:0.82rem;color:var(--muted); }
+    .coach-badges  { display:flex;gap:8px;margin-top:8px;flex-wrap:wrap; }
+    .coach-badge   { padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;border:1px solid; }
+    .coach-badge.g { background:var(--green-bg);border-color:var(--green);color:var(--green); }
+    .coach-badge.b { background:var(--blue-bg); border-color:var(--blue); color:var(--blue);  }
+    .coach-badge.a { background:var(--amber-bg);border-color:var(--amber);color:var(--amber); }
+
+    /* ── Chat Layout ── */
+    .chat-layout { display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start; }
+
+    /* ── Chat Window ── */
+    .chat-window {
+      background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+      display:flex;flex-direction:column;height:620px;
+    }
+    .chat-win-head {
+      padding:14px 18px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:10px;
+    }
+    .online-dot { width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;margin-right:4px;animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+    .chat-messages {
+      flex:1;overflow-y:auto;padding:16px;
+      display:flex;flex-direction:column;gap:14px;
+    }
+    .msg { display:flex;gap:10px;align-items:flex-start; }
+    .msg.user-msg { flex-direction:row-reverse; }
+    .msg-av {
+      width:32px;height:32px;border-radius:50%;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;font-size:0.9rem;
+    }
+    .msg-av.ai-av   { background:var(--green-bg);color:var(--green); }
+    .msg-av.user-av { background:var(--blue-bg); color:var(--blue);  }
+    .msg-bubble {
+      max-width:84%;padding:12px 16px;border-radius:16px;
+      font-size:0.86rem;line-height:1.7;
+    }
+    .msg.ai-msg .msg-bubble   { background:var(--bg3);border:1px solid var(--border);border-radius:4px 16px 16px 16px; }
+    .msg.user-msg .msg-bubble { background:var(--blue-bg);border:1px solid var(--blue);border-radius:16px 4px 16px 16px; }
+    .msg-time { font-size:0.7rem;color:var(--muted);margin-top:4px; }
+
+    .typing-dots { display:flex;gap:5px;padding:4px 0; }
+    .typing-dots span { width:7px;height:7px;background:var(--muted);border-radius:50%;animation:bounce 1.2s infinite; }
+    .typing-dots span:nth-child(2){animation-delay:0.2s}
+    .typing-dots span:nth-child(3){animation-delay:0.4s}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+    .chat-input-area { padding:14px 16px;border-top:1px solid var(--border); }
+    .chat-input-row  { display:flex;gap:8px; }
+    .chat-input-row input {
+      flex:1;border-radius:24px;padding:10px 16px;
+      background:var(--bg3);border:1px solid var(--border);font-size:0.87rem;
+    }
+    .chat-input-row input:focus { border-color:var(--green); }
+    .send-btn {
+      width:40px;height:40px;border-radius:50%;background:var(--green);
+      border:none;color:#fff;cursor:pointer;font-size:1rem;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      transition:background 0.15s;
+    }
+    .send-btn:hover { background:#19865f; }
+    .send-btn:disabled { background:var(--bg3);color:var(--muted);cursor:not-allowed; }
+
+    /* ── Mode tabs ── */
+    .mode-tabs { display:flex;gap:4px;margin-bottom:12px; }
+    .mode-tab  {
+      flex:1;padding:8px;border-radius:var(--radius-sm);font-size:0.78rem;font-weight:600;
+      border:1px solid var(--border);background:transparent;color:var(--muted);
+      cursor:pointer;font-family:inherit;text-align:center;transition:all 0.15s;
+    }
+    .mode-tab.active { background:var(--green-bg);border-color:var(--green);color:var(--green); }
+
+    /* ── Right Panel ── */
+    .side-panel { display:flex;flex-direction:column;gap:16px; }
+    .chip-grid { display:flex;flex-wrap:wrap;gap:7px; }
+    .chip {
+      padding:6px 12px;border-radius:20px;font-size:0.78rem;
+      border:1px solid var(--border);background:var(--bg3);
+      color:var(--muted);cursor:pointer;font-family:inherit;transition:all 0.15s;text-align:left;
+    }
+    .chip:hover { border-color:var(--green);color:var(--green);background:var(--green-bg); }
+    .snap-row { display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.82rem; }
+    .snap-row:last-child { border-bottom:none; }
+    .snap-label { color:var(--muted); }
+    .snap-val   { font-weight:600; }
+
+    /* ── Coach Modes (analysis panels) ── */
+    .coach-panel { display:none; }
+    .coach-panel.active { display:block; }
+    .coach-insight {
+      padding:14px 16px;border-radius:var(--radius-sm);
+      font-size:0.84rem;line-height:1.65;margin-bottom:10px;
+      border:1px solid var(--border);background:var(--bg3);
+    }
+    .coach-insight h4 { font-size:0.88rem;margin-bottom:6px;display:flex;align-items:center;gap:8px; }
+
+    @media(max-width:768px){
+      .chat-layout{grid-template-columns:1fr}
+      .chat-window{height:460px}
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">💰</span> FinanceIQ</div>
+    <nav class="sidebar-nav">
+      <a class="nav-link"        href="dashboard.html">    <span class="icon">🏠</span> Dashboard</a>
+      <a class="nav-link"        href="transactions.html"> <span class="icon">📋</span> Transactions</a>
+      <a class="nav-link"        href="budget.html">       <span class="icon">🎯</span> Budget</a>
+      <a class="nav-link"        href="analytics.html">    <span class="icon">📊</span> Analytics</a>
+      <a class="nav-link active" href="ai-advisor.html">   <span class="icon">🤖</span> AI Coach</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- Coach header -->
+    <div class="coach-header">
+      <div class="coach-avatar">🤖</div>
+      <div class="coach-info">
+        <h2>FinanceIQ AI Coach</h2>
+        <p>Your personal financial advisor — reads your real transaction data before every reply.</p>
+        <div class="coach-badges">
+          <span class="coach-badge g">✅ Budget Analysis</span>
+          <span class="coach-badge b">📈 Trend Insights</span>
+          <span class="coach-badge a">💡 Saving Tips</span>
+          <span class="coach-badge g">🎯 Goal Planning</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-layout">
+
+      <!-- Chat Window -->
+      <div class="chat-window">
+        <div class="chat-win-head">
+          <span style="font-size:1.1rem">🤖</span>
+          <div>
+            <div style="font-weight:700;font-size:0.9rem">AI Financial Coach</div>
+            <div style="font-size:0.75rem;color:var(--muted)"><span class="online-dot"></span>Online · Ready to help</div>
+          </div>
+          <button onclick="clearChat()" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer">Clear chat</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Ask anything about your finances…" onkeydown="if(event.key==='Enter')sendMessage()" />
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right panel -->
+      <div class="side-panel">
+
+        <!-- Mode tabs -->
+        <div class="card" style="padding:14px 16px">
+          <div class="card-title">Coach mode</div>
+          <div class="mode-tabs">
+            <button class="mode-tab active" onclick="setMode('chat',this)">💬 Chat</button>
+            <button class="mode-tab" onclick="setMode('analysis',this)">🔍 Analysis</button>
+            <button class="mode-tab" onclick="setMode('goals',this)">🎯 Goals</button>
+          </div>
+
+          <!-- Chat mode: quick prompts -->
+          <div id="mode-chat" class="coach-panel active">
+            <div class="chip-grid">
+              <button class="chip" onclick="sendChip('Analyze my spending patterns and give me 3 actionable tips to save more money.')">📊 Analyze spending</button>
+              <button class="chip" onclick="sendChip('Am I saving enough? What should my savings target be?')">💰 Saving enough?</button>
+              <button class="chip" onclick="sendChip('Which category am I overspending on this month?')">⚠️ Overspending?</button>
+              <button class="chip" onclick="sendChip('Create a savings goal plan for me based on my current data.')">🎯 Goal plan</button>
+              <button class="chip" onclick="sendChip('Give me a budget recommendation using the 50/30/20 rule based on my income.')">📋 Budget advice</button>
+              <button class="chip" onclick="sendChip('What are my top 3 highest expenses and how can I reduce them?')">✂️ Cut expenses</button>
+              <button class="chip" onclick="sendChip('Compare my income vs expenses and tell me if my financial health is improving.')">📈 Am I improving?</button>
+              <button class="chip" onclick="sendChip('What are 5 specific financial habits I should build based on my spending data?')">💡 Financial habits</button>
+              <button class="chip" onclick="sendChip('Should I invest? How much surplus do I have each month after expenses?')">💹 Investment tips</button>
+            </div>
+          </div>
+
+          <!-- Analysis mode -->
+          <div id="mode-analysis" class="coach-panel">
+            <div id="auto-analysis"><p style="color:var(--muted);font-size:0.83rem">Loading analysis…</p></div>
+          </div>
+
+          <!-- Goals mode -->
+          <div id="mode-goals" class="coach-panel">
+            <div style="margin-bottom:10px">
+              <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">I want to save for:</label>
+              <input type="text" id="goal-target" placeholder="e.g. New laptop, Trip to Goa" style="font-size:0.83rem;padding:8px 12px" />
+            </div>
+            <div style="margin-bottom:10px">
+              <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Target amount (₹):</label>
+              <input type="number" id="goal-amount" placeholder="e.g. 50000" style="font-size:0.83rem;padding:8px 12px" />
+            </div>
+            <button class="btn primary" style="width:100%;justify-content:center" onclick="askGoal()">🎯 Create my plan</button>
+          </div>
+        </div>
+
+        <!-- Data snapshot -->
+        <div class="card">
+          <div class="card-title">Your data (live)</div>
+          <div id="data-snapshot"></div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+seedDemoData();
+
+let chatHistory = [];
+let isLoading   = false;
+let currentMode = 'chat';
+
+function nowTime() {
+  return new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+function addMessage(text, role) {
+  const el  = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role==='user'?'user-msg':'ai-msg'}`;
+  const formatted = role === 'assistant'
+    ? text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>')
+    : text;
+  div.innerHTML = `
+    <div class="msg-av ${role==='user'?'user-av':'ai-av'}">${role==='user'?'👤':'🤖'}</div>
+    <div>
+      <div class="msg-bubble">${formatted}</div>
+      <div class="msg-time">${nowTime()}</div>
+    </div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  const el  = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className='msg ai-msg'; div.id='typing-ind';
+  div.innerHTML=`<div class="msg-av ai-av">🤖</div><div class="msg-bubble" style="padding:10px 16px"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  el.appendChild(div); el.scrollTop=el.scrollHeight;
+}
+function hideTyping(){ const e=document.getElementById('typing-ind'); if(e)e.remove(); }
+
+// Build rich AI context
+function buildContext() {
+  const txs    = getData();
+  const budgets = getBudgets();
+  const { income, expense, balance } = getSummary(txs);
+  const month   = getMonth();
+  const moTxs   = txs.filter(t=>t.date.startsWith(month));
+  const mo      = getSummary(moTxs);
+  const catSpend = {};
+  txs.filter(t=>t.type==='expense').forEach(t=>{catSpend[t.cat]=(catSpend[t.cat]||0)+t.amount;});
+  const monthly  = getMonthlyData(txs);
+  const mKeys    = Object.keys(monthly).sort();
+  const monthlyStr = mKeys.map(k=>`${k}: inc ₹${monthly[k].income.toFixed(0)} exp ₹${monthly[k].expense.toFixed(0)} saved ₹${(monthly[k].income-monthly[k].expense).toFixed(0)}`).join(' | ');
+  const rate  = income>0?((balance/income)*100).toFixed(1):0;
+  const recent = txs.slice(-15).map(t=>`${t.date} ${t.type==='income'?'INCOME':'EXPENSE'} ₹${t.amount} [${t.cat}] "${t.desc}"`).join('\n');
+
+  return `You are FinanceIQ AI Coach — a warm, sharp, practical personal finance advisor for Meghna, an engineering student in India.
+
+=== MEGHNA'S FINANCIAL DATA ===
+ALL-TIME: Income ₹${income.toFixed(2)} | Expenses ₹${expense.toFixed(2)} | Net balance ₹${balance.toFixed(2)} | Savings rate ${rate}%
+THIS MONTH (${month}): Income ₹${mo.income.toFixed(2)} | Expenses ₹${mo.expense.toFixed(2)} | Savings ₹${(mo.income-mo.expense).toFixed(2)} | Rate ${mo.income>0?((mo.income-mo.expense)/mo.income*100).toFixed(1):0}%
+SPENDING BY CATEGORY: ${Object.entries(catSpend).map(([k,v])=>`${k}: ₹${v.toFixed(0)}`).join(', ')||'None yet'}
+MONTHLY BUDGETS: ${Object.keys(budgets).length?Object.entries(budgets).map(([k,v])=>`${k}: ₹${v}`).join(', '):'None set'}
+MONTHLY HISTORY: ${monthlyStr||'One month only'}
+LAST 15 TRANSACTIONS:\n${recent||'None'}
+
+=== INSTRUCTIONS ===
+- Address Meghna by name occasionally for warmth
+- Always use ₹ symbol
+- Reference her actual numbers — be specific
+- Be practical, non-judgmental, action-oriented
+- Max 250 words, use bullet points for lists
+- Suggest Indian investment options (SIPs, PPF, FD, NPS) when relevant
+- If she has surplus, suggest how to invest it`;
+}
+
+async function sendMessage() {
+  if (isLoading) return;
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addMessage(text, 'user');
+  chatHistory.push({ role:'user', content:text });
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+  showTyping();
+
+  try {
+    const res  = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system:buildContext(), messages:chatHistory })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(()=>({}));
+      throw new Error(errData?.error?.message || 'HTTP ' + res.status);
+    }
+    const data  = await res.json();
+    const reply = data.content?.find(b=>b.type==='text')?.text || 'Sorry, could not get a response.';
+    hideTyping();
+    addMessage(reply,'assistant');
+    chatHistory.push({ role:'assistant', content:reply });
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  } catch(e) {
+    hideTyping();
+    addMessage('⚠️ ' + (e.message || 'Connection error. Please try again.'), 'assistant');
+  }
+  isLoading = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('chat-input').focus();
+}
+
+function sendChip(text) {
+  document.getElementById('chat-input').value = text;
+  sendMessage();
+}
+
+function askGoal() {
+  const target = document.getElementById('goal-target').value.trim();
+  const amount = document.getElementById('goal-amount').value.trim();
+  if (!target || !amount) { alert('Please fill in both fields.'); return; }
+  const prompt = `I want to save ₹${amount} for "${target}". Based on my current income and expenses, how long will it take and what's the best strategy?`;
+  document.getElementById('chat-input').value = prompt;
+  sendMessage();
+  setMode('chat', document.querySelector('.mode-tab'));
+}
+
+function clearChat() {
+  chatHistory = [];
+  document.getElementById('chat-messages').innerHTML = '';
+  addWelcomeMessage();
+}
+
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.coach-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('mode-' + mode).classList.add('active');
+  if (mode === 'analysis') renderAutoAnalysis();
+}
+
+function renderAutoAnalysis() {
+  const txs    = getData();
+  const monthly = getMonthlyData(txs);
+  const keys    = Object.keys(monthly).sort();
+  const curr    = keys[keys.length-1], prev = keys[keys.length-2];
+  const catCurr = {}, catPrev = {};
+  if (curr) txs.filter(t=>t.type==='expense'&&t.date.startsWith(curr)).forEach(t=>{catCurr[t.cat]=(catCurr[t.cat]||0)+t.amount;});
+  if (prev) txs.filter(t=>t.type==='expense'&&t.date.startsWith(prev)).forEach(t=>{catPrev[t.cat]=(catPrev[t.cat]||0)+t.amount;});
+
+  const { income, expense } = getSummary(txs.filter(t=>curr&&t.date.startsWith(curr)));
+  const rate = income>0?((income-expense)/income*100).toFixed(1):0;
+
+  const insights = [];
+  insights.push({ icon:'💰', title:'Savings rate this month', body:`<strong style="color:${parseFloat(rate)>=20?'var(--green)':'var(--amber)'}">₹${fmt(income-expense)} (${rate}%)</strong> — Target is 20%+.` });
+
+  const top = Object.entries(catCurr).sort((a,b)=>b[1]-a[1])[0];
+  if (top) insights.push({ icon:'🔝', title:'Highest spend category', body:`<strong>${top[0]}</strong> at ${fmt(top[1])} this month.` });
+
+  Object.entries(catCurr).forEach(([cat,cur])=>{
+    const pre = catPrev[cat]||0;
+    if (pre>0) {
+      const chg = ((cur-pre)/pre*100).toFixed(0);
+      if (chg >= 20) insights.push({ icon:'⚠️', title:`${cat} up ${chg}%`, body:`₹${fmt(pre)} → ${fmt(cur)}. Consider reducing ${cat.toLowerCase()} spending.` });
+    }
+  });
+
+  const budgets = getBudgets();
+  Object.entries(budgets).forEach(([cat,b])=>{
+    const s = catCurr[cat]||0;
+    if (s>b) insights.push({ icon:'🚨', title:`${cat} budget exceeded`, body:`Spent ${fmt(s)} of ${fmt(b)} budget — ₹${(s-b).toFixed(0)} over.` });
+  });
+
+  document.getElementById('auto-analysis').innerHTML = insights.slice(0,5).map(i=>`
+    <div class="coach-insight">
+      <h4>${i.icon} ${i.title}</h4>
+      <div style="font-size:0.82rem;color:var(--muted)">${i.body}</div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:0.83rem">Add more transactions to unlock analysis.</p>';
+}
+
+function renderSnapshot() {
+  const txs    = getData();
+  const { income, expense, balance } = getSummary(txs);
+  const month  = getMonth();
+  const mo     = getSummary(txs.filter(t=>t.date.startsWith(month)));
+  const rate   = mo.income>0?((mo.income-mo.expense)/mo.income*100).toFixed(1):0;
+
+  document.getElementById('data-snapshot').innerHTML = [
+    { label:'Total transactions', val:txs.length, color:'var(--text)' },
+    { label:'All-time balance',   val:fmt(balance), color:balance>=0?'var(--green)':'var(--red)' },
+    { label:'This month income',  val:fmt(mo.income),  color:'var(--green)' },
+    { label:'This month expense', val:fmt(mo.expense), color:'var(--red)'   },
+    { label:'Savings rate',       val:rate+'%', color:parseFloat(rate)>=20?'var(--green)':parseFloat(rate)>=10?'var(--amber)':'var(--red)' },
+    { label:'Budgets set',        val:Object.keys(getBudgets()).length+' categories', color:'var(--text)' },
+  ].map(r=>`
+    <div class="snap-row">
+      <span class="snap-label">${r.label}</span>
+      <span class="snap-val" style="color:${r.color}">${r.val}</span>
+    </div>`).join('');
+}
+
+function addWelcomeMessage() {
+  const txs = getData();
+  const { income, expense, balance } = getSummary(txs);
+  const month = getMonth();
+  const mo    = getSummary(txs.filter(t=>t.date.startsWith(month)));
+  const saved = mo.income - mo.expense;
+  addMessage(`👋 **Hello Meghna!** I'm your AI Financial Coach.
+
+I can see your financial data right now:
+• **${txs.length}** transactions recorded
+• This month: earned **${fmt(mo.income)}**, spent **${fmt(mo.expense)}**, saved **${fmt(Math.max(saved,0))}**
+• All-time net balance: **${fmt(balance)}**
+
+I can help you with budget analysis, savings goals, spending insights, and investment advice tailored specifically to your data.
+
+**How can I help you today?** Try the quick prompts → or just type your question!`, 'assistant');
+}
+
+// Boot
+addWelcomeMessage();
+renderSnapshot();
+</script>
+</body>
+</html>

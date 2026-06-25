@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions — Finance Manager</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Page-specific styles ── */
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: flex-end; margin-bottom: 16px;
+    }
+    .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 120px; }
+    .filter-bar .form-group label { font-size: 0.75rem; }
+
+    .tx-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead th {
+      text-align: left; padding: 10px 12px;
+      color: var(--muted); font-size: 0.75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg3); }
+
+    .type-toggle {
+      display: flex; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden; width: 200px;
+    }
+    .type-toggle button {
+      flex: 1; padding: 9px; border: none; background: transparent;
+      color: var(--muted); font-size: 0.85rem; cursor: pointer;
+      font-family: inherit; font-weight: 500; transition: all 0.15s;
+    }
+    .type-toggle button.active-income  { background: var(--green-bg); color: var(--green); }
+    .type-toggle button.active-expense { background: var(--red-bg);   color: var(--red);   }
+    .type-toggle button:hover { background: var(--bg3); }
+
+    .summary-strip {
+      display: flex; gap: 20px; flex-wrap: wrap;
+      padding: 12px 0; margin-bottom: 6px;
+    }
+    .strip-item { font-size: 0.85rem; color: var(--muted); }
+    .strip-item strong { color: var(--text); }
+    .strip-item .val-green { color: var(--green); }
+    .strip-item .val-red   { color: var(--red); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">💰</span> FinanceIQ</div>
+    <nav class="sidebar-nav">
+      <a class="nav-link"        href="dashboard.html">    <span class="icon">🏠</span> Dashboard</a>
+      <a class="nav-link active" href="transactions.html"> <span class="icon">📋</span> Transactions</a>
+      <a class="nav-link"        href="budget.html">       <span class="icon">🎯</span> Budget</a>
+      <a class="nav-link"        href="analytics.html">    <span class="icon">📊</span> Analytics</a>
+      <a class="nav-link"        href="ai-advisor.html">   <span class="icon">🤖</span> AI Advisor</a>
+    </nav>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <h1 class="page-title">Transactions</h1>
+    <p class="page-sub">Add and manage all your income and expense records.</p>
+
+    <!-- Add transaction form -->
+    <div class="card">
+      <div class="card-title">Add new transaction</div>
+      <div id="form-alert"></div>
+
+      <div style="margin-bottom:14px">
+        <div class="type-toggle">
+          <button id="btn-expense" class="active-expense" onclick="setType('expense')">Expense</button>
+          <button id="btn-income"                         onclick="setType('income')">Income</button>
+        </div>
+      </div>
+
+      <div class="form-grid-3" style="margin-bottom:12px">
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="tx-amount" placeholder="e.g. 500" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="tx-date" />
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="tx-cat"></select>
+        </div>
+      </div>
+      <div class="form-grid-2" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="tx-desc" placeholder="e.g. Grocery shopping at D-Mart" />
+        </div>
+        <div class="form-group">
+          <label>Note (optional)</label>
+          <input type="text" id="tx-note" placeholder="Any extra note..." />
+        </div>
+      </div>
+      <button class="btn primary" onclick="addTransaction()">➕ Add Transaction</button>
+    </div>
+
+    <!-- Filters + list -->
+    <div class="card">
+      <div class="card-title">All transactions</div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="filter-type" onchange="renderList()">
+            <option value="">All</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="filter-cat" onchange="renderList()">
+            <option value="">All categories</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Month</label>
+          <select id="filter-month" onchange="renderList()">
+            <option value="">All months</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Search</label>
+          <input type="text" id="filter-search" placeholder="Search description..." oninput="renderList()" />
+        </div>
+        <button class="btn sm" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <!-- Summary strip -->
+      <div class="summary-strip" id="summary-strip"></div>
+
+      <!-- Table -->
+      <div class="tx-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Note</th>
+              <th style="text-align:right">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+        <div id="tx-empty" class="empty" style="display:none">
+          <div class="empty-icon">📭</div>
+          <p>No transactions match your filters.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+seedDemoData();
+
+// ── State ─────────────────────────────────────────────────────
+let selectedType = 'expense';
+
+// ── Type toggle ───────────────────────────────────────────────
+function setType(type) {
+  selectedType = type;
+  document.getElementById('btn-expense').className = type === 'expense' ? 'active-expense' : '';
+  document.getElementById('btn-income').className  = type === 'income'  ? 'active-income'  : '';
+
+  // Update category dropdown
+  const cats = type === 'income'
+    ? ['Salary', 'Freelance', 'Other']
+    : EXPENSE_CATS;
+  const sel = document.getElementById('tx-cat');
+  sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+// ── Populate filter dropdowns ─────────────────────────────────
+function populateFilters() {
+  // categories
+  const fc = document.getElementById('filter-cat');
+  fc.innerHTML = '<option value="">All categories</option>' +
+    CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  // months from actual data
+  const txs     = getData();
+  const months  = [...new Set(txs.map(t => t.date.substring(0, 7)))].sort().reverse();
+  const fm      = document.getElementById('filter-month');
+  fm.innerHTML  = '<option value="">All months</option>' +
+    months.map(m => `<option value="${m}">${m}</option>`).join('');
+  // default to current month
+  const curr = getMonth();
+  if (months.includes(curr)) fm.value = curr;
+}
+
+// ── Add transaction ───────────────────────────────────────────
+function addTransaction() {
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const date   = document.getElementById('tx-date').value;
+  const desc   = document.getElementById('tx-desc').value.trim();
+  const cat    = document.getElementById('tx-cat').value;
+  const note   = document.getElementById('tx-note').value.trim();
+
+  const alertEl = document.getElementById('form-alert');
+  if (!amount || amount <= 0 || !date || !desc) {
+    alertEl.innerHTML = '<div class="alert error">⚠️ Please fill in amount, date, and description.</div>';
+    return;
+  }
+
+  const txs = getData();
+  txs.push({ id: Date.now(), type: selectedType, amount, date, desc, cat, note });
+  saveData(txs);
+
+  // Reset form
+  document.getElementById('tx-amount').value = '';
+  document.getElementById('tx-desc').value   = '';
+  document.getElementById('tx-note').value   = '';
+  alertEl.innerHTML = '<div class="alert success">✅ Transaction added successfully!</div>';
+  setTimeout(() => alertEl.innerHTML = '', 3000);
+
+  populateFilters();
+  renderList();
+}
+
+// ── Render list ───────────────────────────────────────────────
+function renderList() {
+  let txs = getData();
+
+  // Apply filters
+  const fType   = document.getElementById('filter-type').value;
+  const fCat    = document.getElementById('filter-cat').value;
+  const fMonth  = document.getElementById('filter-month').value;
+  const fSearch = document.getElementById('filter-search').value.toLowerCase();
+
+  if (fType)   txs = txs.filter(t => t.type === fType);
+  if (fCat)    txs = txs.filter(t => t.cat  === fCat);
+  if (fMonth)  txs = txs.filter(t => t.date.startsWith(fMonth));
+  if (fSearch) txs = txs.filter(t => t.desc.toLowerCase().includes(fSearch));
+
+  // Sort newest first
+  txs = txs.slice().sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+  // Summary strip
+  const { income, expense } = getSummary(txs);
+  document.getElementById('summary-strip').innerHTML = `
+    <div class="strip-item">Showing: <strong>${txs.length}</strong> records</div>
+    <div class="strip-item">Income: <span class="val-green"><strong>${fmt(income)}</strong></span></div>
+    <div class="strip-item">Expenses: <span class="val-red"><strong>${fmt(expense)}</strong></span></div>
+    <div class="strip-item">Net: <strong style="color:${income-expense>=0?'var(--green)':'var(--red)'}">${fmt(income-expense)}</strong></div>
+  `;
+
+  const tbody = document.getElementById('tx-tbody');
+  const empty = document.getElementById('tx-empty');
+
+  if (!txs.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = txs.map(t => `
+    <tr>
+      <td>
+        <div class="tx-icon ${t.type === 'income' ? 'inc' : 'exp'}" style="width:28px;height:28px;font-size:0.85rem">
+          ${t.type === 'income' ? '↑' : '↓'}
+        </div>
+      </td>
+      <td style="color:var(--muted);white-space:nowrap">${t.date}</td>
+      <td><strong>${t.desc}</strong></td>
+      <td><span class="tx-cat">${t.cat}</span></td>
+      <td style="color:var(--muted);font-size:0.8rem">${t.note || '—'}</td>
+      <td style="text-align:right">
+        <span class="tx-amt ${t.type === 'income' ? 'pos' : 'neg'}">
+          ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
+        </span>
+      </td>
+      <td>
+        <button class="del-btn" onclick="deleteTransaction(${t.id})" title="Delete">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ── Delete ────────────────────────────────────────────────────
+function deleteTransaction(id) {
+  if (!confirm('Delete this transaction?')) return;
+  saveData(getData().filter(t => t.id !== id));
+  renderList();
+}
+
+// ── Clear filters ─────────────────────────────────────────────
+function clearFilters() {
+  document.getElementById('filter-type').value   = '';
+  document.getElementById('filter-cat').value    = '';
+  document.getElementById('filter-month').value  = '';
+  document.getElementById('filter-search').value = '';
+  renderList();
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+setType('expense');
+populateFilters();
+renderList();
+</script>
+</body>
+</html>
